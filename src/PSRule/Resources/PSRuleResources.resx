@@ -117,8 +117,21 @@
   <resheader name="writer">
     <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
   </resheader>
+  <data name="BaselineObsolete" xml:space="preserve">
+    <value>The baseline '{0}' is obsolete. Consider switching to an alternative baseline.</value>
+    <comment>Occurs when a baseline is used that has been flagged as obsolete.</comment>
+  </data>
   <data name="ConstrainedTargetBinding" xml:space="preserve">
     <value>Binding functions are not supported in this language mode.</value>
+  </data>
+  <data name="DebugPropertyObsolete" xml:space="preserve">
+    <value>{0}: The property '${1}.{2}' is obsolete and will be removed in the next major version.</value>
+  </data>
+  <data name="DebugTargetIfMismatch" xml:space="preserve">
+    <value>Target failed If precondition</value>
+  </data>
+  <data name="DebugTargetTypeMismatch" xml:space="preserve">
+    <value>Target failed Type precondition</value>
   </data>
   <data name="DependencyCircularReference" xml:space="preserve">
     <value>A circular rule dependency was detected. The rule '{0}' depends on '{1}' which also depend on '{0}'.</value>
@@ -181,6 +194,9 @@
   </data>
   <data name="OutcomeRulePass" xml:space="preserve">
     <value>[PASS] -- {0}:: Reported for '{1}'</value>
+  </data>
+  <data name="PropertyObsolete" xml:space="preserve">
+    <value>The property '${0}.{1}' is obsolete and will be removed in the next major version.</value>
   </data>
   <data name="ReadJsonFailed" xml:space="preserve">
     <value>Read JSON failed.</value>

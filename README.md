@@ -149,7 +149,7 @@ Rule 'isFruit' {
     Recommend 'Fruit is only Apple, Orange and Pear'
 
     # An failure reason to display for non-fruit
-    Reason "$($Rule.TargetName) is not fruit."
+    Reason "$($PSRule.TargetName) is not fruit."
 
     # Condition to determine if the object is fruit
     $TargetObject.Name -in 'Apple', 'Orange', 'Pear'
@@ -222,6 +222,7 @@ The following commands exist in the `PSRule` module:
 - [Get-PSRule](docs/commands/PSRule/en-US/Get-PSRule.md) - Get a list of rule definitions.
 - [Get-PSRuleBaseline](docs/commands/PSRule/en-US/Get-PSRuleBaseline.md) - Get a list of baselines.
 - [Get-PSRuleHelp](docs/commands/PSRule/en-US/Get-PSRuleHelp.md) - Get documentation for a rule.
+- [Get-PSRuleTarget](docs/commands/PSRule/en-US/Get-PSRuleTarget.md) - Get a list of target objects.
 - [Invoke-PSRule](docs/commands/PSRule/en-US/Invoke-PSRule.md) - Evaluate objects against matching rules and output the results.
 - [New-PSRuleOption](docs/commands/PSRule/en-US/New-PSRuleOption.md) - Create options to configure PSRule execution.
 - [Set-PSRuleOption](docs/commands/PSRule/en-US/Set-PSRuleOption.md) - Sets options that configure PSRule execution.
@@ -234,6 +235,8 @@ The following conceptual topics exist in the `PSRule` module:
 - [Assert](docs/concepts/PSRule/en-US/about_PSRule_Assert.md)
   - [Contains](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#contains)
   - [EndsWith](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#endswith)
+  - [FileHeader](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#fileheader)
+  - [FilePath](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#filepath)
   - [Greater](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#greater)
   - [GreaterOrEqual](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#greaterorequal)
   - [HasDefaultValue](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#hasdefaultvalue)
@@ -270,6 +273,7 @@ The following conceptual topics exist in the `PSRule` module:
   - [Execution.NotProcessedWarning](docs/concepts/PSRule/en-US/about_PSRule_Options.md#executionnotprocessedwarning)
   - [Input.Format](docs/concepts/PSRule/en-US/about_PSRule_Options.md#inputformat)
   - [Input.ObjectPath](docs/concepts/PSRule/en-US/about_PSRule_Options.md#inputobjectpath)
+  - [Input.PathIgnore](docs/concepts/PSRule/en-US/about_PSRule_Options.md#inputpathignore)
   - [Input.TargetType](docs/concepts/PSRule/en-US/about_PSRule_Options.md#inputtargettype)
   - [Logging.LimitDebug](docs/concepts/PSRule/en-US/about_PSRule_Options.md#logginglimitdebug)
   - [Logging.LimitVerbose](docs/concepts/PSRule/en-US/about_PSRule_Options.md#logginglimitverbose)

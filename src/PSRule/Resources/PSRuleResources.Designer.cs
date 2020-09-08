@@ -61,11 +61,47 @@ namespace PSRule.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The baseline &apos;{0}&apos; is obsolete. Consider switching to an alternative baseline..
+        /// </summary>
+        internal static string BaselineObsolete {
+            get {
+                return ResourceManager.GetString("BaselineObsolete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to Binding functions are not supported in this language mode..
         /// </summary>
         internal static string ConstrainedTargetBinding {
             get {
                 return ResourceManager.GetString("ConstrainedTargetBinding", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to {0}: The property &apos;${1}.{2}&apos; is obsolete and will be removed in the next major version..
+        /// </summary>
+        internal static string DebugPropertyObsolete {
+            get {
+                return ResourceManager.GetString("DebugPropertyObsolete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Target failed If precondition.
+        /// </summary>
+        internal static string DebugTargetIfMismatch {
+            get {
+                return ResourceManager.GetString("DebugTargetIfMismatch", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Target failed Type precondition.
+        /// </summary>
+        internal static string DebugTargetTypeMismatch {
+            get {
+                return ResourceManager.GetString("DebugTargetTypeMismatch", resourceCulture);
             }
         }
         
@@ -237,6 +273,15 @@ namespace PSRule.Resources {
         internal static string OutcomeRulePass {
             get {
                 return ResourceManager.GetString("OutcomeRulePass", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The property &apos;${0}.{1}&apos; is obsolete and will be removed in the next major version..
+        /// </summary>
+        internal static string PropertyObsolete {
+            get {
+                return ResourceManager.GetString("PropertyObsolete", resourceCulture);
             }
         }
         

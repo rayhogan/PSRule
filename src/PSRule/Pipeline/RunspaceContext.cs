@@ -11,6 +11,7 @@ using System.IO;
 using System.Management.Automation;
 using System.Management.Automation.Language;
 using System.Text;
+using System.Threading;
 using static PSRule.Pipeline.PipelineContext;
 
 namespace PSRule.Pipeline
@@ -23,6 +24,8 @@ namespace PSRule.Pipeline
         private const string SOURCE_OUTCOME_FAIL = "Rule.Outcome.Fail";
         private const string SOURCE_OUTCOME_PASS = "Rule.Outcome.Pass";
         private const string ERRORID_INVALIDRULERESULT = "PSRule.Runtime.InvalidRuleResult";
+        private const string WARN_KEY_PROPERTY = "Property";
+        private const string WARN_KEY_SEPARATOR = "_";
 
         [ThreadStatic]
         internal static RunspaceContext CurrentThread;
@@ -42,7 +45,12 @@ namespace PSRule.Pipeline
         private readonly OutcomeLogStream _FailStream;
         private readonly OutcomeLogStream _PassStream;
 
-        private bool _RaisedUsingInvariantCulture = false;
+        /// <summary>
+        /// Track common warnings, to only raise once.
+        /// </summary>
+        private readonly HashSet<string> _WarnOnce;
+
+        private bool _RaisedUsingInvariantCulture;
 
         // Pipeline logging
         private string _LogPrefix;
@@ -52,7 +60,7 @@ namespace PSRule.Pipeline
         private readonly List<string> _Reason;
 
         // Track whether Dispose has been called.
-        private bool _Disposed = false;
+        private bool _Disposed;
 
         internal RunspaceContext(PipelineContext pipeline, PipelineWriter writer)
         {
@@ -64,6 +72,7 @@ namespace PSRule.Pipeline
             _NotProcessedWarning = Pipeline.Option.Execution.NotProcessedWarning ?? ExecutionOption.Default.NotProcessedWarning.Value;
             _FailStream = Pipeline.Option.Logging.RuleFail ?? LoggingOption.Default.RuleFail.Value;
             _PassStream = Pipeline.Option.Logging.RulePass ?? LoggingOption.Default.RulePass.Value;
+            _WarnOnce = new HashSet<string>();
 
             _ObjectNumber = -1;
             _RuleTimer = new Stopwatch();
@@ -76,13 +85,13 @@ namespace PSRule.Pipeline
                 return;
 
             if (_PassStream == OutcomeLogStream.Warning && Writer.ShouldWriteWarning())
-                Writer.WriteWarning(string.Format(PSRuleResources.OutcomeRulePass, RuleRecord.RuleName, Pipeline.Binder.TargetName));
+                Writer.WriteWarning(PSRuleResources.OutcomeRulePass, RuleRecord.RuleName, Pipeline.Binder.TargetName);
 
             if (_PassStream == OutcomeLogStream.Error && Writer.ShouldWriteError())
-                Writer.WriteError(new ErrorRecord(new RuleRuntimeException(string.Format(PSRuleResources.OutcomeRulePass, RuleRecord.RuleName, Pipeline.Binder.TargetName)), SOURCE_OUTCOME_PASS, ErrorCategory.InvalidData, null));
+                Writer.WriteError(new ErrorRecord(new RuleRuntimeException(string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.OutcomeRulePass, RuleRecord.RuleName, Pipeline.Binder.TargetName)), SOURCE_OUTCOME_PASS, ErrorCategory.InvalidData, null));
 
             if (_PassStream == OutcomeLogStream.Information && Writer.ShouldWriteInformation())
-                Writer.WriteInformation(new InformationRecord(messageData: string.Format(PSRuleResources.OutcomeRulePass, RuleRecord.RuleName, Pipeline.Binder.TargetName), source: SOURCE_OUTCOME_PASS));
+                Writer.WriteInformation(new InformationRecord(messageData: string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.OutcomeRulePass, RuleRecord.RuleName, Pipeline.Binder.TargetName), source: SOURCE_OUTCOME_PASS));
         }
 
         public void Fail()
@@ -91,13 +100,13 @@ namespace PSRule.Pipeline
                 return;
 
             if (_FailStream == OutcomeLogStream.Warning && Writer.ShouldWriteWarning())
-                Writer.WriteWarning(string.Format(PSRuleResources.OutcomeRuleFail, RuleRecord.RuleName, Pipeline.Binder.TargetName));
+                Writer.WriteWarning(PSRuleResources.OutcomeRuleFail, RuleRecord.RuleName, Pipeline.Binder.TargetName);
 
             if (_FailStream == OutcomeLogStream.Error && Writer.ShouldWriteError())
-                Writer.WriteError(new ErrorRecord(new RuleRuntimeException(string.Format(PSRuleResources.OutcomeRuleFail, RuleRecord.RuleName, Pipeline.Binder.TargetName)), SOURCE_OUTCOME_FAIL, ErrorCategory.InvalidData, null));
+                Writer.WriteError(new ErrorRecord(new RuleRuntimeException(string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.OutcomeRuleFail, RuleRecord.RuleName, Pipeline.Binder.TargetName)), SOURCE_OUTCOME_FAIL, ErrorCategory.InvalidData, null));
 
             if (_FailStream == OutcomeLogStream.Information && Writer.ShouldWriteInformation())
-                Writer.WriteInformation(new InformationRecord(messageData: string.Format(PSRuleResources.OutcomeRuleFail, RuleRecord.RuleName, Pipeline.Binder.TargetName), source: SOURCE_OUTCOME_FAIL));
+                Writer.WriteInformation(new InformationRecord(messageData: string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.OutcomeRuleFail, RuleRecord.RuleName, Pipeline.Binder.TargetName), source: SOURCE_OUTCOME_FAIL));
         }
 
         public void WarnRuleInconclusive(string ruleId)
@@ -105,7 +114,7 @@ namespace PSRule.Pipeline
             if (Writer == null || !Writer.ShouldWriteWarning() || !_InconclusiveWarning)
                 return;
 
-            Writer.WriteWarning(string.Format(PSRuleResources.RuleInconclusive, ruleId, Pipeline.Binder.TargetName));
+            Writer.WriteWarning(PSRuleResources.RuleInconclusive, ruleId, Pipeline.Binder.TargetName);
         }
 
         public void WarnObjectNotProcessed()
@@ -113,7 +122,7 @@ namespace PSRule.Pipeline
             if (Writer == null || !Writer.ShouldWriteWarning() || !_NotProcessedWarning)
                 return;
 
-            Writer.WriteWarning(string.Format(PSRuleResources.ObjectNotProcessed, Pipeline.Binder.TargetName));
+            Writer.WriteWarning(PSRuleResources.ObjectNotProcessed, Pipeline.Binder.TargetName);
         }
 
         public void WarnRuleNotFound()
@@ -124,13 +133,38 @@ namespace PSRule.Pipeline
             Writer.WriteWarning(PSRuleResources.RuleNotFound);
         }
 
+        public void WarnBaselineObsolete(string baselineId)
+        {
+            if (Writer == null || !Writer.ShouldWriteWarning())
+                return;
+
+            Writer.WriteWarning(PSRuleResources.BaselineObsolete, baselineId);
+        }
+
+        public void WarnPropertyObsolete(string variableName, string propertyName)
+        {
+            DebugPropertyObsolete(variableName, propertyName);
+            if (Writer == null || !Writer.ShouldWriteWarning() || !ShouldWarnOnce(WARN_KEY_PROPERTY, variableName, propertyName))
+                return;
+
+            Writer.WriteWarning(PSRuleResources.PropertyObsolete, variableName, propertyName);
+        }
+
+        private void DebugPropertyObsolete(string variableName, string propertyName)
+        {
+            if (Writer == null || !Writer.ShouldWriteDebug())
+                return;
+
+            Writer.WriteDebug(PSRuleResources.DebugPropertyObsolete, RuleBlock.RuleName, variableName, propertyName);
+        }
+
         public void ErrorInvaildRuleResult()
         {
             if (Writer == null || !Writer.ShouldWriteError())
                 return;
 
             Writer.WriteError(new ErrorRecord(
-                exception: new RuleRuntimeException(message: string.Format(PSRuleResources.InvalidRuleResult, RuleBlock.RuleId)),
+                exception: new RuleRuntimeException(message: string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.InvalidRuleResult, RuleBlock.RuleId)),
                 errorId: ERRORID_INVALIDRULERESULT,
                 errorCategory: ErrorCategory.InvalidResult,
                 targetObject: null
@@ -166,7 +200,7 @@ namespace PSRule.Pipeline
             if (Writer == null || !Writer.ShouldWriteVerbose())
                 return;
 
-            Writer.WriteVerbose(string.Concat(GetLogPrefix(), "[", condition, "] -- ", string.Format(message, args)));
+            Writer.WriteVerbose(string.Concat(GetLogPrefix(), "[", condition, "] -- ", string.Format(Thread.CurrentThread.CurrentCulture, message, args)));
         }
 
         public void VerboseConditionResult(string condition, int pass, int count, bool outcome)
@@ -326,7 +360,7 @@ namespace PSRule.Pipeline
             return string.Concat(
                 record.ScriptStackTrace,
                 Environment.NewLine,
-                string.Format(PSRuleResources.RuleStackTrace, RuleBlock.RuleName, RuleBlock.Extent.File, RuleBlock.Extent.StartLineNumber)
+                string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.RuleStackTrace, RuleBlock.RuleName, RuleBlock.Extent.File, RuleBlock.Extent.StartLineNumber)
             );
         }
 
@@ -376,7 +410,7 @@ namespace PSRule.Pipeline
         {
             _ObjectNumber++;
             TargetObject = targetObject;
-            Pipeline.Binder.Bind(Pipeline.Baseline, targetObject);
+            Pipeline.Binder.Bind(Pipeline.Baseline, TargetObject);
             if (Pipeline.ContentCache.Count > 0)
                 Pipeline.ContentCache.Clear();
         }
@@ -386,7 +420,6 @@ namespace PSRule.Pipeline
         /// </summary>
         public RuleRecord EnterRuleBlock(RuleBlock ruleBlock)
         {
-            Pipeline.Binder.Bind(Pipeline.Baseline, TargetObject);
             RuleBlock = ruleBlock;
             RuleRecord = new RuleRecord(
                 ruleId: ruleBlock.RuleId,
@@ -438,7 +471,7 @@ namespace PSRule.Pipeline
 
         public void Begin()
         {
-            // Do nothing
+            Pipeline.Baseline.Init(this);
         }
 
         public string GetLocalizedPath(string file)
@@ -461,6 +494,16 @@ namespace PSRule.Pipeline
                     return path;
             }
             return null;
+        }
+
+        private bool ShouldWarnOnce(params string[] key)
+        {
+            var combinedKey = string.Join(WARN_KEY_SEPARATOR, key);
+            if (_WarnOnce.Contains(combinedKey))
+                return false;
+
+            _WarnOnce.Add(combinedKey);
+            return true;
         }
 
         #region IDisposable

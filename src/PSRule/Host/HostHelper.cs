@@ -88,10 +88,10 @@ namespace PSRule.Host
             {
                 foreach (var comment in comments)
                 {
-                    if (comment.StartsWith("# Description: "))
+                    if (comment.StartsWith("# Description: ", StringComparison.OrdinalIgnoreCase))
                         metadata.Synopsis = comment.Substring(15);
 
-                    if (comment.StartsWith("# Synopsis: "))
+                    if (comment.StartsWith("# Synopsis: ", StringComparison.OrdinalIgnoreCase))
                         metadata.Synopsis = comment.Substring(12);
                 }
             }
@@ -156,11 +156,8 @@ namespace PSRule.Host
 
                         foreach (var ir in invokeResults)
                         {
-                            if (ir.BaseObject is RuleBlock)
-                            {
-                                var block = ir.BaseObject as RuleBlock;
+                            if (ir.BaseObject is RuleBlock block)
                                 results.Add(block);
-                            }
                         }
                     }
                 }
@@ -181,7 +178,7 @@ namespace PSRule.Host
             var result = new Collection<ILanguageBlock>();
             var d = new DeserializerBuilder()
                 .IgnoreUnmatchedProperties()
-                .WithNamingConvention(new CamelCaseNamingConvention())
+                .WithNamingConvention(CamelCaseNamingConvention.Instance)
                 .WithTypeConverter(new FieldMapYamlTypeConverter())
                 .WithNodeDeserializer(
                     inner => new LanguageBlockDeserializer(inner),
@@ -204,9 +201,8 @@ namespace PSRule.Host
                         using (var reader = new StreamReader(file.Path))
                         {
                             var parser = new YamlDotNet.Core.Parser(reader);
-                            parser.Expect<StreamStart>();
-
-                            while (parser.Accept<DocumentStart>())
+                            parser.TryConsume<StreamStart>(out _);
+                            while (parser.Current is DocumentStart)
                             {
                                 var item = d.Deserialize<ResourceObject>(parser: parser);
                                 if (item == null || item.Block == null)
@@ -251,7 +247,7 @@ namespace PSRule.Host
                 {
                     ruleRecord.OutcomeReason = RuleOutcomeReason.Inconclusive;
                     ruleRecord.Outcome = RuleOutcome.Fail;
-                    context.WarnRuleInconclusive(ruleId: ruleRecord.RuleId);
+                    context.WarnRuleInconclusive(ruleRecord.RuleId);
                 }
                 else
                 {
