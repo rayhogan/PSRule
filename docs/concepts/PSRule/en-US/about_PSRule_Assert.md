@@ -26,6 +26,8 @@ The following built-in assertion methods are provided:
 - [HasFieldValue](#hasfieldvalue) - The object must have the specified field and that field is not empty.
 - [HasJsonSchema](#hasjsonschema) - The object must reference a JSON schema with the `$schema` field.
 - [In](#in) - The field value must be included in the set.
+- [IsLower](#islower) - The field value must include only lowercase characters.
+- [IsUpper](#isupper) - The field value must include only uppercase characters.
 - [JsonSchema](#jsonschema) - The object must validate successfully against a JSON schema.
 - [Less](#less) - The field value must be less.
 - [LessOrEqual](#lessorequal) - The field value must be less or equal to.
@@ -240,6 +242,8 @@ The following parameters are accepted:
 - `inputObject` - The object being checked for the specified field.
 - `field` - The name of the field to check. This is a case insensitive compare.
 - `value` - A integer to compare the field value against.
+- `convert` (optional) - Convert numerical strings and use a numerical comparison instead of using string length.
+By default the string length is compared.
 
 Reasons include:
 
@@ -272,6 +276,8 @@ The following parameters are accepted:
 - `inputObject` - The object being checked for the specified field.
 - `field` - The name of the field to check. This is a case insensitive compare.
 - `value` - A integer to compare the field value against.
+- `convert` (optional) - Convert numerical strings and use a numerical comparison instead of using string length.
+By default the string length is compared.
 
 Reasons include:
 
@@ -362,7 +368,9 @@ The following parameters are accepted:
 
 - `inputObject` - The object being checked for the specified field.
 - `field` - The name of the field to check. This is a case insensitive compare.
-- `expectedValue` (optional) - Check that the field value is set to a specific value. To check `$Null` use `NullOrEmpty` instead. If `expectedValue` is `$Null` the field value will not be compared.
+- `expectedValue` (optional) - Check that the field value is set to a specific value.
+To check `$Null` use `NullOrEmpty` instead.
+If `expectedValue` is `$Null` the field value will not be compared.
 
 Reasons include:
 
@@ -389,7 +397,8 @@ If the `$schema` property is defined, it must match one of the supplied schemas.
 The following parameters are accepted:
 
 - `inputObject` - The object being compared.
-- `uri` - Optional. When specified, the object being compared must have a `$schema` property set to one of the specified schemas.
+- `uri` - Optional.
+When specified, the object being compared must have a `$schema` property set to one of the specified schemas.
 
 Reasons include:
 
@@ -461,6 +470,72 @@ Rule 'In' {
 }
 ```
 
+### IsLower
+
+The `IsLower` assertion method checks the field value uses only lowercase characters.
+Non-letter characters are ignored by default and will pass.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field to check. This is a case insensitive compare.
+- `requireLetters` (optional) - Require each character to be lowercase letters only.
+Non-letter characters are ignored by default.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The field '{0}' does not exist._
+- _The field value '{0}' is not a string._
+- _The value '{0}' does not contain only lowercase characters._
+- _The value '{0}' does not contain only letters._
+
+Examples:
+
+```powershell
+Rule 'IsLower' {
+    # Require Name to be lowercase
+    $Assert.IsLower($TargetObject, 'Name')
+
+    # Require Name to only contain lowercase letters
+    $Assert.IsLower($TargetObject, 'Name', $True)
+}
+```
+
+### IsUpper
+
+The `IsUpper` assertion method checks the field value uses only uppercase characters.
+Non-letter characters are ignored by default and will pass.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field to check. This is a case insensitive compare.
+- `requireLetters` (optional) - Require each character to be uppercase letters only.
+Non-letter characters are ignored by default.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The field '{0}' does not exist._
+- _The field value '{0}' is not a string._
+- _The value '{0}' does not contain only uppercase characters._
+- _The value '{0}' does not contain only letters._
+
+Examples:
+
+```powershell
+Rule 'IsUpper' {
+    # Require Name to be uppercase
+    $Assert.IsUpper($TargetObject, 'Name')
+
+    # Require Name to only contain uppercase letters
+    $Assert.IsUpper($TargetObject, 'Name', $True)
+}
+```
+
 ### Less
 
 The `Less` assertion method checks the field value is less than the specified value.
@@ -476,6 +551,8 @@ The following parameters are accepted:
 - `inputObject` - The object being checked for the specified field.
 - `field` - The name of the field to check. This is a case insensitive compare.
 - `value` - A integer to compare the field value against.
+- `convert` (optional) - Convert numerical strings and use a numerical comparison instead of using string length.
+By default the string length is compared.
 
 Reasons include:
 
@@ -502,6 +579,8 @@ When the field value is:
 - An integer or float, a numerical comparison is used.
 - An array, the number of elements is compared.
 - A string, the length of the string is compared.
+- `convert` (optional) - Convert numerical strings and use a numerical comparison instead of using string length.
+By default the string length is compared.
 
 The following parameters are accepted:
 
@@ -534,7 +613,8 @@ The following parameters are accepted:
 - `inputObject` - The object being checked for the specified field.
 - `field` - The name of the field to check. This is a case insensitive compare.
 - `pattern` - A regular expression pattern to match.
-- `caseSensitive` (optional) - Use a case sensitive compare of the field value. Case is ignored by default.
+- `caseSensitive` (optional) - Use a case sensitive compare of the field value.
+Case is ignored by default.
 
 Reasons include:
 
@@ -566,7 +646,8 @@ The following parameters are accepted:
 - `inputObject` - The object being checked for the specified field.
 - `field` - The name of the field to check. This is a case insensitive compare.
 - `values` - An array of one or more values that the field value is compared against.
-- `caseSensitive` (optional) - Use a case sensitive compare of the field value. Case is ignored by default.
+- `caseSensitive` (optional) - Use a case sensitive compare of the field value.
+Case is ignored by default.
 
 Reasons include:
 
@@ -594,7 +675,8 @@ The following parameters are accepted:
 - `inputObject` - The object being checked for the specified field.
 - `field` - The name of the field to check. This is a case insensitive compare.
 - `pattern` - A regular expression pattern to match.
-- `caseSensitive` (optional) - Use a case sensitive compare of the field value. Case is ignored by default.
+- `caseSensitive` (optional) - Use a case sensitive compare of the field value.
+Case is ignored by default.
 
 Reasons include:
 
@@ -626,7 +708,8 @@ A field value is null or empty if any of the following are true:
 The following parameters are accepted:
 
 - `inputObject` - The object being checked for the specified field.
-- `field` - The name of the field to check. This is a case insensitive compare.
+- `field` - The name of the field to check.
+This is a case insensitive compare.
 
 Reasons include:
 
@@ -653,7 +736,8 @@ The following parameters are accepted:
 - `inputObject` - The object being checked for the specified field.
 - `field` - The name of the field to check. This is a case insensitive compare.
 - `prefix` - One or more prefixes to compare the field value with. Only one prefix must match.
-- `caseSensitive` (optional) - Use a case sensitive compare of the field value. Case is ignored by default.
+- `caseSensitive` (optional) - Use a case sensitive compare of the field value.
+Case is ignored by default.
 
 Reasons include:
 

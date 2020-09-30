@@ -28,6 +28,9 @@ $here = (Resolve-Path $PSScriptRoot).Path;
 
 Describe 'PSRule assertions' -Tag 'Assert' {
     $ruleFilePath = (Join-Path -Path $here -ChildPath 'FromFileAssert.Rule.ps1');
+    $invokeParams = @{
+        Path = $ruleFilePath
+    }
 
     Context '$Assert' {
         $testObject = @(
@@ -51,6 +54,10 @@ Describe 'PSRule assertions' -Tag 'Assert' {
                 )
                 Path = $PSCommandPath
                 ParentPath = $here
+                Lower = 'test123'
+                Upper = 'TEST123'
+                LetterLower = 'test'
+                LetterUpper = 'TEST'
             }
             [PSCustomObject]@{
                 '$schema' = "http://json-schema.org/draft-07/schema`#"
@@ -78,11 +85,15 @@ Describe 'PSRule assertions' -Tag 'Assert' {
                     'item3'
                 )
                 ParentPath = (Join-Path -Path $here -ChildPath 'notapath')
+                Lower = 'Test123'
+                Upper = 'Test123'
+                LetterLower = 'test123'
+                LetterUpper = 'TEST123'
             }
         )
 
         It 'In pre-conditions' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.Precondition' -Outcome All -WarningAction SilentlyContinue);
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.Precondition' -Outcome All -WarningAction SilentlyContinue);
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -96,7 +107,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'With self field' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.Self' -Outcome All -WarningAction SilentlyContinue);
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.Self' -Outcome All -WarningAction SilentlyContinue);
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -110,7 +121,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'Complete' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.Complete');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.Complete');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -134,7 +145,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'Contains' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.Contains');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.Contains');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -150,7 +161,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'EndsWith' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.EndsWith');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.EndsWith');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -199,7 +210,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'Greater' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.Greater');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.Greater');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -215,7 +226,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'GreaterOrEqual' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.GreaterOrEqual');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.GreaterOrEqual');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -231,7 +242,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'HasField' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.HasField');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.HasField');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -247,7 +258,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'HasFieldValue' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.HasFieldValue');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.HasFieldValue');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -265,7 +276,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'HasDefaultValue' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.HasDefaultValue');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.HasDefaultValue');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -281,7 +292,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'HasJsonSchema' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.HasJsonSchema');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.HasJsonSchema');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -297,7 +308,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'JsonSchema' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.JsonSchema');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.JsonSchema');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -328,8 +339,42 @@ Describe 'PSRule assertions' -Tag 'Assert' {
             $result[1].TargetName | Should -Be 'TestObject2';
         }
 
+        It 'IsLower' {
+            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.IsLower');
+            $result | Should -Not -BeNullOrEmpty;
+            $result.Length | Should -Be 2;
+
+            # Negative case
+            $result[1].IsSuccess() | Should -Be $False;
+            $result[1].TargetName | Should -Be 'TestObject2';
+            $result[1].Reason.Length | Should -Be 2;
+            $result[1].Reason[0] | Should -BeLike "The value '*' does not contain only lowercase characters.";
+            $result[1].Reason[1] | Should -BeLike "The value '*' does not contain only letters.";
+
+            # Positive case
+            $result[0].IsSuccess() | Should -Be $True;
+            $result[0].TargetName | Should -Be 'TestObject1';
+        }
+
+        It 'IsUpper' {
+            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.IsUpper');
+            $result | Should -Not -BeNullOrEmpty;
+            $result.Length | Should -Be 2;
+
+            # Negative case
+            $result[1].IsSuccess() | Should -Be $False;
+            $result[1].TargetName | Should -Be 'TestObject2';
+            $result[1].Reason.Length | Should -Be 2;
+            $result[1].Reason[0] | Should -BeLike "The value '*' does not contain only uppercase characters.";
+            $result[1].Reason[1] | Should -BeLike "The value '*' does not contain only letters.";
+
+            # Positive case
+            $result[0].IsSuccess() | Should -Be $True;
+            $result[0].TargetName | Should -Be 'TestObject1';
+        }
+
         It 'Less' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.Less');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.Less');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -345,7 +390,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'LessOrEqual' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.LessOrEqual');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.LessOrEqual');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -409,7 +454,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'NullOrEmpty' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.NullOrEmpty');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.NullOrEmpty');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -425,7 +470,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'StartsWith' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.StartsWith');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.StartsWith');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -441,7 +486,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         }
 
         It 'Version' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.Version');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.Version');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
 
@@ -470,7 +515,7 @@ Describe 'PSRule assertions' -Tag 'Assert' {
         )
 
         It 'With Add-Member' {
-            $result = @($testObject | Invoke-PSRule -Path $ruleFilePath -Name 'Assert.AddMember');
+            $result = @($testObject | Invoke-PSRule @invokeParams -Name 'Assert.AddMember');
             $result | Should -Not -BeNullOrEmpty;
             $result.Length | Should -Be 2;
             $result.IsSuccess() | Should -BeIn $True;

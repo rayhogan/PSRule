@@ -58,7 +58,7 @@ Describe 'Invoke-PSRule' -Tag 'Invoke-PSRule','Common' {
         }
 
         It 'Returns failure' {
-            $result = $testObject | Invoke-PSRule -Path $ruleFilePath -Name 'FromFile2';
+            $result = $testObject | Invoke-PSRule -Path $ruleFilePath -Name 'FromFile2' -ErrorAction Stop;
             $result | Should -Not -BeNullOrEmpty;
             $result.IsSuccess() | Should -Be $False;
             $result.TargetName | Should -Be 'TestObject1';
@@ -430,9 +430,10 @@ Describe 'Invoke-PSRule' -Tag 'Invoke-PSRule','Common' {
             $result | Should -Not -BeNullOrEmpty;
             $result | Should -BeOfType System.String;
 
-            $result = $testObject | Invoke-PSRule @invokeParams -Name 'FromFile1','FromFile2','FromFile3' -WarningAction SilentlyContinue | Out-String;
+            $result = $testObject | Invoke-PSRule @invokeParams -Name 'FromFile1','FromFile2','FromFile3' -Option @{ 'Output.Style' = 'AzurePipelines' } -WarningAction SilentlyContinue | Out-String;
             $result | Should -Not -BeNullOrEmpty;
             $result | Should -BeOfType System.String;
+            $result | Should -Match 'Returned a \\`false\\`\.'
 
             # Check XML schema
 

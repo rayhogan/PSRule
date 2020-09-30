@@ -6,6 +6,32 @@
 
 ## Unreleased
 
+- General improvements:
+  - Added help links and default snippets to schemas. [#561](https://github.com/microsoft/PSRule/issues/561)
+
+## v0.21.0-B2009016 (pre-release)
+
+What's changed since pre-release v0.21.0-B2009006:
+
+- Engine features:
+  - Added character case assertion helpers `IsLower`, and `IsUpper`. [#555](https://github.com/microsoft/PSRule/issues/555)
+    - `IsLower` checks that all letters in a field value are lowercase.
+    - `IsUpper` checks that all letters in a field value are uppercase.
+- Bug fixes:
+  - Fixed NUnit report reasons should be escaped in markdown. [#471](https://github.com/microsoft/PSRule/issues/471)
+
+## v0.21.0-B2009006 (pre-release)
+
+What's changed since v0.20.0:
+
+- Engine features:
+  - Added support for formatting results as markdown. [#474](https://github.com/microsoft/PSRule/issues/474)
+    - Use `-OutputFormat Markdown` or configure `Output.Format` to output markdown.
+    - To format as either detail or summary, use the `-As` parameter or configure `Output.As`.
+- General improvements:
+  - Numerical strings can be converted with numeric assertion helpers. [#550](https://github.com/microsoft/PSRule/issues/550)
+  - Added outcome `Output.Outcome` as a configurable option. [#552](https://github.com/microsoft/PSRule/issues/552)
+
 ## v0.20.0
 
 What's changed since v0.19.0:

@@ -11,12 +11,17 @@ Features of PSRule include:
 - [Reusable](docs/features.md#reusable) - Share rules across teams or organizations.
 - [Recommendations](docs/features.md#recommendations) - Include detailed instructions to remediate issues.
 
-## Disclaimer
+## Support
 
-This project is open source and **not a supported product**.
+This project uses GitHub Issues to track bugs and feature requests.
+Please search the existing issues before filing new issues to avoid duplicates.
 
-If you are experiencing problems, have a feature request, or a question, please check for an [issue] on GitHub.
-If you do not see your problem captured, please file a new issue, and follow the provided template.
+- For new issues, file your bug or feature request as a new [Issue].
+- For help and questions about using this project, we have a Gitter room which you can join below.
+
+[![Join the chat][chat-badge]][chat]
+
+Support for this project/ product is limited to the resources listed above.
 
 ## Getting the module
 
@@ -244,6 +249,8 @@ The following conceptual topics exist in the `PSRule` module:
   - [HasFieldValue](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#hasfieldvalue)
   - [HasJsonSchema](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#hasjsonschema)
   - [In](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#in)
+  - [IsLower](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#islower)
+  - [IsUpper](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#isupper)
   - [JsonSchema](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#jsonschema)
   - [Less](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#less)
   - [Match](docs/concepts/PSRule/en-US/about_PSRule_Assert.md#match)
@@ -283,6 +290,7 @@ The following conceptual topics exist in the `PSRule` module:
   - [Output.Culture](docs/concepts/PSRule/en-US/about_PSRule_Options.md#outputculture)
   - [Output.Encoding](docs/concepts/PSRule/en-US/about_PSRule_Options.md#outputencoding)
   - [Output.Format](docs/concepts/PSRule/en-US/about_PSRule_Options.md#outputformat)
+  - [Output.Outcome](docs/concepts/PSRule/en-US/about_PSRule_Options.md#outputoutcome)
   - [Output.Path](docs/concepts/PSRule/en-US/about_PSRule_Options.md#outputpath)
   - [Output.Style](docs/concepts/PSRule/en-US/about_PSRule_Options.md#outputstyle)
   - [Rule.Include](docs/concepts/PSRule/en-US/about_PSRule_Options.md#ruleinclude)
@@ -344,7 +352,7 @@ or contact [opencode@microsoft.com](mailto:opencode@microsoft.com) with any addi
 
 ## License
 
-This project is [licensed under the MIT License](LICENSE.txt).
+This project is [licensed under the MIT License](LICENSE).
 
 [issue]: https://github.com/Microsoft/PSRule/issues
 [install]: docs/scenarios/install-instructions.md
@@ -358,3 +366,5 @@ This project is [licensed under the MIT License](LICENSE.txt).
 [PSRule.Monitor]: https://github.com/microsoft/PSRule.Monitor
 [PSRule-pipelines]: https://github.com/microsoft/PSRule-pipelines
 [ps-rule]: https://github.com/microsoft/ps-rule
+[chat]: https://gitter.im/PSRule/PSRule.Rules.Azure?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge
+[chat-badge]: https://img.shields.io/static/v1.svg?label=chat&message=on%20gitter&color=informational&logo=gitter
