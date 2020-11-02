@@ -75,7 +75,7 @@ namespace PSRule.Commands
         protected override void ProcessRecord()
         {
             if (!IsScriptScope())
-                throw new RuleRuntimeException(string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.KeywordScriptScope, LanguageKeywords.Rule));
+                throw new RuleException(string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.KeywordScriptScope, LanguageKeywords.Rule));
 
             var context = RunspaceContext.CurrentThread;
             var errorPreference = GetErrorActionPreference();
@@ -87,7 +87,7 @@ namespace PSRule.Commands
                 startLineNumber: Body.Ast.Extent.StartLineNumber
             );
 
-            context.VerboseFoundRule(ruleName: Name, scriptName: MyInvocation.ScriptName);
+            context.VerboseFoundRule(ruleName: Name, moduleName: source.ModuleName, scriptName: MyInvocation.ScriptName);
 
             CheckDependsOn();
             var ps = GetCondition(context);

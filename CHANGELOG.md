@@ -6,6 +6,73 @@
 
 ## Unreleased
 
+## v0.22.0
+
+What's changed since v0.21.0:
+
+- Engine features:
+  - Added `HasFields` assertion helper to check all fields exist. [#578](https://github.com/microsoft/PSRule/issues/578)
+  - Updated `HasField` to check if any of the specified fields exist. [#578](https://github.com/microsoft/PSRule/issues/578)
+- General improvements:
+  - Input format detection now includes `.jsonc` and `.markdown` file extensions. [#575](https://github.com/microsoft/PSRule/issues/575)
+  - Improved support for cross module rule dependencies. [#248](https://github.com/microsoft/PSRule/issues/248)
+    - Rule dependencies are now automatically imported.
+- Bug fixes:
+  - Fixed handling for null or empty arrays with `StartsWith`, `Contains`, `EndsWith`, `In`, and `NotIn`. [#579](https://github.com/microsoft/PSRule/issues/579)
+
+What's changed since pre-release v0.22.0-B2010014:
+
+- No additional changes.
+
+## v0.22.0-B2010014 (pre-release)
+
+What's changed since v0.21.0:
+
+- Engine features:
+  - Added `HasFields` assertion helper to check all fields exist. [#578](https://github.com/microsoft/PSRule/issues/578)
+  - Updated `HasField` to check if any of the specified fields exist. [#578](https://github.com/microsoft/PSRule/issues/578)
+- General improvements:
+  - Input format detection now includes `.jsonc` and `.markdown` file extensions. [#575](https://github.com/microsoft/PSRule/issues/575)
+  - Improved support for cross module rule dependencies. [#248](https://github.com/microsoft/PSRule/issues/248)
+    - Rule dependencies are now automatically imported.
+- Bug fixes:
+  - Fixed handling for null or empty arrays with `StartsWith`, `Contains`, `EndsWith`, `In`, and `NotIn`. [#579](https://github.com/microsoft/PSRule/issues/579)
+
+## v0.21.0
+
+What's changed since v0.20.0:
+
+- Engine features:
+  - Added support for formatting results as markdown. [#474](https://github.com/microsoft/PSRule/issues/474)
+    - Use `-OutputFormat Markdown` or configure `Output.Format` to output markdown.
+    - To format as either detail or summary, use the `-As` parameter or configure `Output.As`.
+  - Added character case assertion helpers `IsLower`, and `IsUpper`. [#555](https://github.com/microsoft/PSRule/issues/555)
+    - `IsLower` checks that all letters in a field value are lowercase.
+    - `IsUpper` checks that all letters in a field value are uppercase.
+- General improvements:
+  - Numerical strings can be converted with numeric assertion helpers. [#550](https://github.com/microsoft/PSRule/issues/550)
+  - Added outcome `Output.Outcome` as a configurable option. [#552](https://github.com/microsoft/PSRule/issues/552)
+  - Added help links and default snippets to schemas. [#561](https://github.com/microsoft/PSRule/issues/561)
+  - Improved rule error reporting by including rule and source location. [#565](https://github.com/microsoft/PSRule/issues/565)
+- Engineering:
+  - Bump Manatee.Json from 13.0.2 to 13.0.3. [#563](https://github.com/microsoft/PSRule/pull/563)
+- Bug fixes:
+  - Fixed NUnit report reasons should be escaped in markdown. [#471](https://github.com/microsoft/PSRule/issues/471)
+  - Fixed reporting of error when rule error is handled. [#564](https://github.com/microsoft/PSRule/issues/564)
+    - Additionally rules can use `-ErrorAction Ignore` to ignore non-exception errors.
+  - Fixed first exception stops other rules from being processed. [#566](https://github.com/microsoft/PSRule/issues/566)
+
+What's changed since pre-release v0.21.0-B2010010:
+
+- No additional changes.
+
+## v0.21.0-B2010010 (pre-release)
+
+What's changed since pre-release v0.21.0-B2010003:
+
+- General improvements:
+  - Improved rule error reporting by including rule and source location. [#565](https://github.com/microsoft/PSRule/issues/565)
+
 ## v0.21.0-B2010003 (pre-release)
 
 What's changed since pre-release v0.21.0-B2009016:

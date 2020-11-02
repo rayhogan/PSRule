@@ -94,7 +94,7 @@ namespace PSRule.Pipeline
                 Writer.WriteWarning(PSRuleResources.OutcomeRulePass, RuleRecord.RuleName, Pipeline.Binder.TargetName);
 
             if (_PassStream == OutcomeLogStream.Error && Writer.ShouldWriteError())
-                Writer.WriteError(new ErrorRecord(new RuleRuntimeException(string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.OutcomeRulePass, RuleRecord.RuleName, Pipeline.Binder.TargetName)), SOURCE_OUTCOME_PASS, ErrorCategory.InvalidData, null));
+                Writer.WriteError(new ErrorRecord(new RuleException(string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.OutcomeRulePass, RuleRecord.RuleName, Pipeline.Binder.TargetName)), SOURCE_OUTCOME_PASS, ErrorCategory.InvalidData, null));
 
             if (_PassStream == OutcomeLogStream.Information && Writer.ShouldWriteInformation())
                 Writer.WriteInformation(new InformationRecord(messageData: string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.OutcomeRulePass, RuleRecord.RuleName, Pipeline.Binder.TargetName), source: SOURCE_OUTCOME_PASS));
@@ -109,7 +109,7 @@ namespace PSRule.Pipeline
                 Writer.WriteWarning(PSRuleResources.OutcomeRuleFail, RuleRecord.RuleName, Pipeline.Binder.TargetName);
 
             if (_FailStream == OutcomeLogStream.Error && Writer.ShouldWriteError())
-                Writer.WriteError(new ErrorRecord(new RuleRuntimeException(string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.OutcomeRuleFail, RuleRecord.RuleName, Pipeline.Binder.TargetName)), SOURCE_OUTCOME_FAIL, ErrorCategory.InvalidData, null));
+                Writer.WriteError(new ErrorRecord(new RuleException(string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.OutcomeRuleFail, RuleRecord.RuleName, Pipeline.Binder.TargetName)), SOURCE_OUTCOME_FAIL, ErrorCategory.InvalidData, null));
 
             if (_FailStream == OutcomeLogStream.Information && Writer.ShouldWriteInformation())
                 Writer.WriteInformation(new InformationRecord(messageData: string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.OutcomeRuleFail, RuleRecord.RuleName, Pipeline.Binder.TargetName), source: SOURCE_OUTCOME_FAIL));
@@ -170,7 +170,7 @@ namespace PSRule.Pipeline
                 return;
 
             Writer.WriteError(new ErrorRecord(
-                exception: new RuleRuntimeException(message: string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.InvalidRuleResult, RuleBlock.RuleId)),
+                exception: new RuleException(message: string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.InvalidRuleResult, RuleBlock.RuleId)),
                 errorId: ERRORID_INVALIDRULERESULT,
                 errorCategory: ErrorCategory.InvalidResult,
                 targetObject: null
@@ -185,12 +185,13 @@ namespace PSRule.Pipeline
             Writer.WriteVerbose($"[PSRule][D] -- Discovering rules in: {path}");
         }
 
-        public void VerboseFoundRule(string ruleName, string scriptName)
+        public void VerboseFoundRule(string ruleName, string moduleName, string scriptName)
         {
             if (Writer == null || !Writer.ShouldWriteVerbose())
                 return;
 
-            Writer.WriteVerbose($"[PSRule][D] -- Found {ruleName} in {scriptName}");
+            var m = string.IsNullOrEmpty(moduleName) ? "." : moduleName;
+            Writer.WriteVerbose($"[PSRule][D] -- Found {m}\\{ruleName} in {scriptName}");
         }
 
         public void VerboseObjectStart()
@@ -248,7 +249,7 @@ namespace PSRule.Pipeline
 
             var record = new ErrorRecord
             (
-                exception: new RuleParseException(message: error.Message, errorId: error.ErrorId),
+                exception: new ParseException(message: error.Message, errorId: error.ErrorId),
                 errorId: error.ErrorId,
                 errorCategory: ErrorCategory.InvalidOperation,
                 targetObject: null
@@ -348,7 +349,9 @@ namespace PSRule.Pipeline
                 scriptStackTrace: scriptStackTrace,
                 errorId: errorId,
                 exception: ex,
-                category: category
+                category: category,
+                positionMessage: GetPositionMessage(errorRecord),
+                scriptExtent: GetErrorScriptExtent(errorRecord)
             );
         }
 
@@ -359,14 +362,15 @@ namespace PSRule.Pipeline
                 Writer.WriteError(error);
                 return;
             }
-
             RuleRecord.Outcome = RuleOutcome.Error;
             RuleRecord.Error = new ErrorInfo(
                 message: error.Exception?.Message,
                 scriptStackTrace: GetStackTrace(error),
                 errorId: GetErrorId(error),
                 exception: error.Exception,
-                category: error.CategoryInfo.Category
+                category: error.CategoryInfo.Category,
+                positionMessage: GetPositionMessage(error),
+                scriptExtent: GetErrorScriptExtent(error)
             );
         }
 
@@ -394,6 +398,43 @@ namespace PSRule.Pipeline
             );
         }
 
+        private static string GetPositionMessage(ErrorRecord errorRecord)
+        {
+            return errorRecord?.InvocationInfo?.PositionMessage;
+        }
+
+        private static IScriptExtent GetErrorScriptExtent(ErrorRecord errorRecord)
+        {
+            if (errorRecord == null)
+                return null;
+
+            var startPos = new ScriptPosition(
+                errorRecord.InvocationInfo.ScriptName,
+                errorRecord.InvocationInfo.ScriptLineNumber,
+                errorRecord.InvocationInfo.OffsetInLine,
+                errorRecord.InvocationInfo.Line
+            );
+            var endPos = new ScriptPosition(
+                errorRecord.InvocationInfo.ScriptName,
+                errorRecord.InvocationInfo.ScriptLineNumber,
+                GetPositionMessageOffset(errorRecord.InvocationInfo.PositionMessage),
+                errorRecord.InvocationInfo.Line
+            );
+            return new ScriptExtent(startPos, endPos);
+        }
+
+        private static int GetPositionMessageOffset(string positionMessage)
+        {
+            if (string.IsNullOrEmpty(positionMessage))
+                return 0;
+
+            var lines = positionMessage.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+            if (lines.Length != 3)
+                return 0;
+
+            return lines[2].LastIndexOf('~') - 1;
+        }
+
         private string GetLogPrefix()
         {
             if (_LogPrefix == null)
@@ -404,7 +445,7 @@ namespace PSRule.Pipeline
 
         internal SourceScope EnterSourceScope(SourceFile source)
         {
-            if (!File.Exists(source.Path))
+            if (!source.Exists())
                 throw new FileNotFoundException(PSRuleResources.ScriptNotFound, source.Path);
 
             if (Source != null && Source.File == source)
