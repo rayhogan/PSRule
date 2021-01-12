@@ -32,10 +32,10 @@ namespace PSRule.Pipeline
 
         internal Source Source;
 
-        public readonly string Path;
-        public readonly string ModuleName;
-        public readonly RuleSourceType Type;
-        public readonly string HelpPath;
+        public string Path { get; }
+        public string ModuleName { get; }
+        public RuleSourceType Type { get; }
+        public string HelpPath { get; }
 
         public SourceFile(string path, string moduleName, RuleSourceType type, string helpPath)
         {
@@ -61,8 +61,9 @@ namespace PSRule.Pipeline
 
     public sealed class Source
     {
-        public readonly string Path;
-        public readonly SourceFile[] File;
+        public string Path { get; }
+
+        public SourceFile[] File { get; }
 
         internal bool Dependency;
 
@@ -94,21 +95,29 @@ namespace PSRule.Pipeline
 
         internal sealed class ModuleInfo
         {
+            private const string FIELD_BASELINE = "Baseline";
+            private const string FIELD_PRERELEASE = "Prerelease";
+            private const string FIELD_PSRULE = "PSRule";
+            private const string FIELD_PSDATA = "PSData";
+            private const string PRERELEASE_SEPARATOR = "-";
+
             public readonly string Path;
             public readonly string Name;
             public readonly string Baseline;
             public readonly string Version;
+            public readonly string ProjectUri;
 
             public ModuleInfo(PSModuleInfo info)
             {
                 Path = info.ModuleBase;
                 Name = info.Name;
-                Version = info.Version.ToString();
-                if (TryPrivateData(info, "PSRule", out Hashtable moduleData))
-                    Baseline = moduleData.ContainsKey("Baseline") ? moduleData["Baseline"] as string : null;
+                Version = info.Version?.ToString();
+                ProjectUri = info.ProjectUri?.ToString();
+                if (TryPrivateData(info, FIELD_PSRULE, out Hashtable moduleData))
+                    Baseline = moduleData.ContainsKey(FIELD_BASELINE) ? moduleData[FIELD_BASELINE] as string : null;
 
-                if (TryPrivateData(info, "PSData", out Hashtable psData) && psData.ContainsKey("Prerelease"))
-                    Version = string.Concat(Version, "-", psData["Prerelease"].ToString());
+                if (TryPrivateData(info, FIELD_PSDATA, out Hashtable psData) && psData.ContainsKey(FIELD_PRERELEASE))
+                    Version = string.Concat(Version, PRERELEASE_SEPARATOR, psData[FIELD_PRERELEASE].ToString());
             }
 
             private static bool TryPrivateData(PSModuleInfo info, string propertyName, out Hashtable value)
@@ -133,21 +142,17 @@ namespace PSRule.Pipeline
         private const string SourceFileExtension_YML = ".yaml";
         private const string SourceFileExtension_PS1 = ".ps1";
         private const string RuleModuleTag = "PSRule-rules";
-        private readonly List<Source> _Source;
+
+        private readonly Dictionary<string, Source> _Source;
         private readonly HostContext _HostContext;
         private readonly HostPipelineWriter _Writer;
 
         internal SourcePipelineBuilder(HostContext hostContext, PSRuleOption option)
         {
-            _Source = new List<Source>();
+            _Source = new Dictionary<string, Source>(StringComparer.OrdinalIgnoreCase);
             _HostContext = hostContext;
             _Writer = new HostPipelineWriter(hostContext, option);
-        }
-
-        public SourcePipelineBuilder Configure(PSRuleOption option)
-        {
             _Writer.EnterScope("[Discovery.Source]");
-            return this;
         }
 
         public bool ShouldLoadModule
@@ -254,12 +259,17 @@ namespace PSRule.Pipeline
 
         public Source[] Build()
         {
-            return _Source.ToArray();
+            return _Source.Values.ToArray();
         }
 
         private void Source(Source source)
         {
-            _Source.Add(source);
+            // Prefer non-dependencies
+            var key = string.Concat(source?.Module?.Name, ": ", source.Path);
+            if (_Source.ContainsKey(key) && source.Dependency)
+                return;
+
+            _Source[key] = source;
         }
 
         private static SourceFile[] GetFiles(string path, string helpPath, string moduleName = null)
