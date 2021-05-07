@@ -187,6 +187,31 @@ Describe 'Invoke-PSRule' -Tag 'Invoke-PSRule','Common' {
             ($result | Where-Object -FilterScript { $_.RuleName -eq 'WithDependency2' }).Outcome | Should -Be 'None';
             ($result | Where-Object -FilterScript { $_.RuleName -eq 'WithDependency1' }).Outcome | Should -Be 'None';
 
+            # Multiple objects
+            $dependsRuleFilePath = Join-Path -Path $here -ChildPath 'FromFileDependency.Rule.ps1';
+            $result = @($True, $False, $True | Invoke-PSRule -Path $dependsRuleFilePath -Outcome All);
+            $result | Should -Not -BeNullOrEmpty;
+            $result.Length | Should -Be 15;
+            # True
+            $result[0..2].Outcome | Should -BeIn Pass;
+            $result[0..2].OutcomeReason | Should -BeIn Processed;
+            $result[3].Outcome | Should -BeIn Fail;
+            $result[3].OutcomeReason | Should -BeIn Processed;
+            $result[4].Outcome | Should -BeIn None;
+            $result[4].OutcomeReason | Should -BeIn DependencyFail;
+            # False
+            $result[5].Outcome | Should -BeIn Fail;
+            $result[5].OutcomeReason | Should -BeIn Processed;
+            $result[6..9].Outcome | Should -BeIn None;
+            $result[6..9].OutcomeReason | Should -BeIn DependencyFail;
+            # True
+            $result[10..12].Outcome | Should -BeIn Pass;
+            $result[10..12].OutcomeReason | Should -BeIn Processed;
+            $result[13].Outcome | Should -BeIn Fail;
+            $result[13].OutcomeReason | Should -BeIn Processed;
+            $result[14].Outcome | Should -BeIn None;
+            $result[14].OutcomeReason | Should -BeIn DependencyFail;
+
             # Same module, cross file
             $testModuleSourcePath = Join-Path $here -ChildPath 'TestModule2';
             $Null = Import-Module $testModuleSourcePath;
@@ -247,7 +272,8 @@ Describe 'Invoke-PSRule' -Tag 'Invoke-PSRule','Common' {
         }
 
         It 'Returns error with bad path' {
-            { $testObject | Invoke-PSRule -Path (Join-Path -Path $here -ChildPath 'NotAFile.ps1') } | Should -Throw -ExceptionType System.IO.FileNotFoundException;
+            $notFilePath = Join-Path -Path $here -ChildPath 'NotAFile.ps1';
+            { $testObject | Invoke-PSRule -Path $notFilePath } | Should -Throw -ExceptionType System.IO.FileNotFoundException;
         }
 
         It 'Returns warning with empty path' {
@@ -607,6 +633,10 @@ Describe 'Invoke-PSRule' -Tag 'Invoke-PSRule','Common' {
             # Success only
             $filteredResult = @($result | Where-Object { $_.Outcome -ne 'Pass' });
             $filteredResult | Should -BeNullOrEmpty;
+
+            # Dockerfile
+            $filteredResult = @($result | Where-Object { $_.Data.FullName.Replace('\', '/') -like '*/Dockerfile' });
+            $filteredResult[0].Data.TargetType | Should -Be 'Dockerfile';
         }
 
         It 'Globbing processes paths' {
@@ -614,7 +644,7 @@ Describe 'Invoke-PSRule' -Tag 'Invoke-PSRule','Common' {
             $inputFiles = Join-Path -Path $here -ChildPath 'ObjectFromFile*.yaml';
             $result = @(Invoke-PSRule -Path $ruleFilePath -Name 'FromFile1' -InputPath $inputFiles);
             $result | Should -Not -BeNullOrEmpty;
-            $result.Length | Should -Be 3;
+            $result.Length | Should -Be 5;
         }
 
         It 'Returns error with bad path' {
@@ -1042,6 +1072,14 @@ Describe 'Get-PSRuleTarget' -Tag 'Get-PSRuleTarget','Common' {
             $result = @(Get-PSRuleTarget -InputPath (Join-Path -Path $here -ChildPath 'ObjectFromFileSingle.jsonc'));
             $result.Length | Should -Be 1;
             $result[0].TargetName | Should -Be 'TestObject1';
+        }
+
+        It 'None' {
+            $result = @(Get-PSRuleTarget -InputPath '**/HEAD');
+            $result.Length | Should -Be 0;
+
+            $result = @(Get-PSRuleTarget -InputPath '**/HEAD' -Option @{ 'Input.IgnoreGitPath' = $False });
+            $result.Length | Should -BeGreaterThan 0;
         }
     }
 

@@ -1,11 +1,18 @@
+# Copyright (c) Microsoft Corporation.
+# Licensed under the MIT License.
 
 ---
+apiVersion: github.com/microsoft/PSRule/v1
 kind: ModuleConfig
 metadata:
   name: TestModule4
 spec:
   configuration:
     ruleConfig3: 'TestConfig3'
+  convention:
+    include:
+    - 'M4.Convention2'
+    - 'M4.Convention3'
   output:
     culture:
     - 'en-US'

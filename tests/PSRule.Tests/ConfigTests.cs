@@ -4,11 +4,12 @@
 using PSRule.Configuration;
 using PSRule.Host;
 using PSRule.Pipeline;
-using PSRule.Rules;
+using PSRule.Runtime;
 using System;
 using System.IO;
 using System.Linq;
 using Xunit;
+using Assert = Xunit.Assert;
 
 namespace PSRule
 {
@@ -17,7 +18,7 @@ namespace PSRule
         [Fact]
         public void ReadModuleConfig()
         {
-            var context = new RunspaceContext(PipelineContext.New(GetOption(), null, null, new OptionContext(), null), null);
+            var context = new RunspaceContext(PipelineContext.New(GetOption(), null, null, null, new OptionContext(), null), null);
             var configuration = HostHelper.GetModuleConfig(GetSource(), context).ToArray();
             Assert.NotNull(configuration);
             Assert.Equal("Configuration1", configuration[0].Name);

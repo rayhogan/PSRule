@@ -5,6 +5,7 @@ using PSRule.Parser;
 using PSRule.Pipeline;
 using PSRule.Resources;
 using PSRule.Rules;
+using PSRule.Runtime;
 using System;
 using System.Collections;
 using System.IO;
@@ -19,14 +20,13 @@ namespace PSRule.Commands
     [Cmdlet(VerbsCommon.New, RuleLanguageNouns.RuleDefinition)]
     internal sealed class NewRuleDefinitionCommand : LanguageBlock
     {
-        private const string InvokeBlockCmdletName = "Invoke-RuleBlock";
-        private const string InvokeBlockCmdlet_TypeParameter = "Type";
-        private const string InvokeBlockCmdlet_IfParameter = "If";
-        private const string InvokeBlockCmdlet_BodyParameter = "Body";
+        private const string CmdletName = "Invoke-RuleBlock";
+        private const string Cmdlet_TypeParameter = "Type";
+        private const string Cmdlet_IfParameter = "If";
+        private const string Cmdlet_WithParameter = "With";
+        private const string Cmdlet_BodyParameter = "Body";
 
         private const string Markdown_Extension = ".md";
-
-        private const string ErrorActionParameter = "ErrorAction";
 
         /// <summary>
         /// The name of the rule.
@@ -48,16 +48,22 @@ namespace PSRule.Commands
         public Hashtable Tag { get; set; }
 
         /// <summary>
-        /// An optional precondition before the rule is evaluated.
+        /// An optional script precondition before the rule is evaluated.
         /// </summary>
         [Parameter(Mandatory = false)]
         public ScriptBlock If { get; set; }
 
         /// <summary>
-        /// An optional preconditions before the rule is evaluated.
+        /// An optional type precondition before the rule is evaluated.
         /// </summary>
         [Parameter(Mandatory = false)]
         public string[] Type { get; set; }
+
+        /// <summary>
+        /// An optional selector precondition before the rule is evaluated.
+        /// </summary>
+        [Parameter(Mandatory = false)]
+        public string[] With { get; set; }
 
         /// <summary>
         /// Deployments that this deployment depends on.
@@ -74,12 +80,12 @@ namespace PSRule.Commands
 
         protected override void ProcessRecord()
         {
-            if (!IsScriptScope())
-                throw new RuleException(string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.KeywordScriptScope, LanguageKeywords.Rule));
+            if (!IsSourceScope())
+                throw new RuleException(string.Format(Thread.CurrentThread.CurrentCulture, PSRuleResources.KeywordSourceScope, LanguageKeywords.Rule));
 
             var context = RunspaceContext.CurrentThread;
             var errorPreference = GetErrorActionPreference();
-            var metadata = GetMetadata(MyInvocation.ScriptName, MyInvocation.ScriptLineNumber, MyInvocation.OffsetInLine);
+            var metadata = GetCommentMetadata(MyInvocation.ScriptName, MyInvocation.ScriptLineNumber, MyInvocation.OffsetInLine);
             var tag = GetTag(Tag);
             var source = context.Source.File;
             var extent = new RuleExtent(
@@ -87,7 +93,7 @@ namespace PSRule.Commands
                 startLineNumber: Body.Ast.Extent.StartLineNumber
             );
 
-            context.VerboseFoundRule(ruleName: Name, moduleName: source.ModuleName, scriptName: MyInvocation.ScriptName);
+            context.VerboseFoundResource(name: Name, moduleName: source.ModuleName, scriptName: MyInvocation.ScriptName);
 
             CheckDependsOn();
             var ps = GetCondition(context);
@@ -116,28 +122,14 @@ namespace PSRule.Commands
             WriteObject(block);
         }
 
-        private ActionPreference GetErrorActionPreference()
-        {
-            var preference = GetBoundPreference(ErrorActionParameter) ?? ActionPreference.Stop;
-            // Ignore not supported on older PowerShell versions
-            return preference == ActionPreference.Ignore ? ActionPreference.SilentlyContinue : preference;
-        }
-
-        private ActionPreference? GetBoundPreference(string name)
-        {
-            if (MyInvocation.BoundParameters.ContainsKey(name) && Enum.TryParse(MyInvocation.BoundParameters[name].ToString(), out ActionPreference value))
-                return value;
-
-            return null;
-        }
-
         private PowerShell GetCondition(RunspaceContext context)
         {
             var result = context.GetPowerShell();
-            result.AddCommand(new CmdletInfo(InvokeBlockCmdletName, typeof(InvokeRuleBlockCommand)));
-            result.AddParameter(InvokeBlockCmdlet_TypeParameter, Type);
-            result.AddParameter(InvokeBlockCmdlet_IfParameter, If);
-            result.AddParameter(InvokeBlockCmdlet_BodyParameter, Body);
+            result.AddCommand(new CmdletInfo(CmdletName, typeof(InvokeRuleBlockCommand)));
+            result.AddParameter(Cmdlet_TypeParameter, Type);
+            result.AddParameter(Cmdlet_WithParameter, With);
+            result.AddParameter(Cmdlet_IfParameter, If);
+            result.AddParameter(Cmdlet_BodyParameter, Body);
             return result;
         }
 

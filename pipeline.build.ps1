@@ -22,7 +22,10 @@ param (
     [String]$ArtifactPath = (Join-Path -Path $PWD -ChildPath out/modules),
 
     [Parameter(Mandatory = $False)]
-    [String]$AssertStyle = 'AzurePipelines'
+    [String]$AssertStyle = 'AzurePipelines',
+
+    [Parameter(Mandatory = $False)]
+    [String]$TestGroup = $Null
 )
 
 Write-Host -Object "[Pipeline] -- PowerShell v$($PSVersionTable.PSVersion.ToString())" -ForegroundColor Green;
@@ -115,6 +118,7 @@ task TestDotNet {
     else {
         exec {
             # Test library
+            # dotnet test --logger "console;verbosity=detailed" tests/PSRule.Tests
             dotnet test --logger trx -r (Join-Path $PWD -ChildPath reports/) tests/PSRule.Tests
         }
     }
@@ -273,6 +277,10 @@ task TestModule Pester, PSScriptAnalyzer, {
         $Null = New-Item -Path reports -ItemType Directory -Force;
     }
 
+    if ($Null -ne $TestGroup) {
+        $pesterParams['Tags'] = $TestGroup;
+    }
+
     $results = Invoke-Pester @pesterParams;
 
     # Throw an error if pester tests failed
@@ -290,6 +298,7 @@ task Rules {
         Path = './.ps-rule/'
         Style = $AssertStyle
         OutputFormat = 'NUnit3'
+        As = 'Summary'
     }
     Import-Module (Join-Path -Path $PWD -ChildPath out/modules/PSRule) -Force;
     Assert-PSRule @assertParams -OutputPath reports/ps-rule-file.xml -InputPath $PWD -Format File -ErrorAction Stop;
@@ -358,3 +367,5 @@ task Build Clean, BuildModule, BuildHelp, VersionModule, PackageModule
 task Test Build, Rules, TestDotNet, TestModule
 
 task Release ReleaseModule, TagBuild
+
+task AnalyzeRepository Build, Rules

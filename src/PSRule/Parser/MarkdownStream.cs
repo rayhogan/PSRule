@@ -114,65 +114,35 @@ namespace PSRule.Parser
 
         #region Properties
 
-        public bool EOF
-        {
-            get { return _Position >= _Length; }
-        }
+        public bool EOF => _Position >= _Length;
 
-        public bool IsStartOfLine
-        {
-            get { return _Column == 0; }
-        }
+        public bool IsStartOfLine => _Column == 0;
 
         /// <summary>
         /// The character at the current position in the stream.
         /// </summary>
-        public char Current
-        {
-            get { return _Current; }
-        }
+        public char Current => _Current;
 
-        public char Previous
-        {
-            get { return _Previous; }
-        }
+        public char Previous => _Previous;
 
-        public int Line
-        {
-            get { return _Line; }
-        }
+        public int Line => _Line;
 
-        public int Column
-        {
-            get { return _Column; }
-        }
+        public int Column => _Column;
 
 #if DEBUG
 
         /// <summary>
         /// Used for interactive debugging of current position and next characters in the stream.
         /// </summary>
-        public string Preview
-        {
-            get { return _Source.Substring(_Position); }
-        }
+        public string Preview => _Source.Substring(_Position);
 
 #endif
 
-        public int Position
-        {
-            get { return _Position; }
-        }
+        public int Position => _Position;
 
-        private int Remaining
-        {
-            get { return _Length - Position; }
-        }
+        private int Remaining => _Length - Position;
 
-        public bool IsEscaped
-        {
-            get { return _EscapeLength > 0; }
-        }
+        public bool IsEscaped => _EscapeLength > 0;
 
         #endregion Properties
 
@@ -494,20 +464,30 @@ namespace PSRule.Parser
 
         private string Substring(int start, int length, bool ignoreEscaping = false)
         {
-            if (ignoreEscaping)
-                return _Source.Substring(start, length);
+            var newLine = Environment.NewLine.ToCharArray();
 
             var position = start;
             var i = 0;
-            var buffer = new char[length];
+            var buffer = new char[length * 2];
             while (i < length)
             {
-                var offset = GetEscapeCount(position);
+                var ending = GetLineEndingCount(_Source, position);
+                if (ending > 0)
+                {
+                    newLine.CopyTo(buffer, i);
+                    i += newLine.Length;
+                    position += ending;
+
+                    // Adjust based on difference in line endings
+                    length += newLine.Length - ending;
+                    continue;
+                }
+                var offset = ignoreEscaping ? 0 : GetEscapeCount(position);
                 buffer[i] = _Source[position + offset];
                 position += offset + 1;
                 i++;
             }
-            return new string(buffer);
+            return new string(buffer, 0, i);
         }
 
         /// <summary>
@@ -540,9 +520,18 @@ namespace PSRule.Parser
             return Remaining >= length;
         }
 
-        private bool IsLineEnding(char c)
+        private static bool IsLineEnding(char c)
         {
             return c == CarrageReturn || c == NewLine;
+        }
+
+        private static int GetLineEndingCount(string s, int pos)
+        {
+            var c = s[pos];
+            if (!IsLineEnding(c))
+                return 0;
+
+            return c == CarrageReturn && pos < s.Length - 1 && s[pos + 1] == NewLine ? 2 : 1;
         }
     }
 }

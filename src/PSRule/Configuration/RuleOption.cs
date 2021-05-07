@@ -53,19 +53,30 @@ namespace PSRule.Configuration
 
         internal static RuleOption Combine(RuleOption o1, RuleOption o2)
         {
-            var result = new RuleOption(o1);
-            result.Include = o1.Include ?? o2.Include;
-            result.Exclude = o1.Exclude ?? o2.Exclude;
-            result.Tag = o1.Tag ?? o2.Tag;
+            var result = new RuleOption(o1)
+            {
+                Include = o1.Include ?? o2.Include,
+                Exclude = o1.Exclude ?? o2.Exclude,
+                Tag = o1.Tag ?? o2.Tag
+            };
             return result;
         }
 
+        /// <summary>
+        /// A set of rules to include for execution.
+        /// </summary>
         [DefaultValue(null)]
         public string[] Include { get; set; }
 
+        /// <summary>
+        /// A set of rules to exclude for execution.
+        /// </summary>
         [DefaultValue(null)]
         public string[] Exclude { get; set; }
 
+        /// <summary>
+        /// A set of rule tags to include for execution.
+        /// </summary>
         [DefaultValue(null)]
         public Hashtable Tag { get; set; }
     }

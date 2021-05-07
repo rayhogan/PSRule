@@ -7,6 +7,7 @@ using System;
 using System.Collections;
 using System.Globalization;
 using System.Management.Automation;
+using System.Threading;
 
 namespace PSRule
 {
@@ -58,12 +59,37 @@ namespace PSRule
             return JsonConvert.SerializeObject(o, settings);
         }
 
+        public static bool TryTargetInfo(this PSObject o, out PSRuleTargetInfo targetInfo)
+        {
+            return TryProperty(o, PSRuleTargetInfo.PropertyName, out targetInfo);
+        }
+
+        public static void UseTargetInfo(this PSObject o, out PSRuleTargetInfo targetInfo)
+        {
+            if (TryTargetInfo(o, out targetInfo))
+                return;
+
+            targetInfo = new PSRuleTargetInfo();
+            o.Properties.Add(new PSNoteProperty(PSRuleTargetInfo.PropertyName, targetInfo));
+        }
+
         private static T ConvertValue<T>(object value)
         {
             if (value == null)
                 return default;
 
-            return typeof(T).IsValueType ? (T)Convert.ChangeType(value, typeof(T)) : (T)value;
+            return typeof(T).IsValueType ? (T)Convert.ChangeType(value, typeof(T), Thread.CurrentThread.CurrentCulture) : (T)value;
+        }
+
+        private static bool TryProperty<T>(PSObject o, string name, out T value)
+        {
+            value = default;
+            if (o.Properties[name] is T tValue)
+            {
+                value = tValue;
+                return true;
+            }
+            return false;
         }
     }
 }

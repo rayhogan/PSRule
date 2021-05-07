@@ -19,43 +19,25 @@ namespace PSRule.Definitions
 
         ConfigurationOption Configuration { get; set; }
 
+        ConventionOption Convention { get; set; }
+
         RuleOption Rule { get; set; }
     }
 
-    public sealed class Baseline : Resource<BaselineSpec>, IResource
+    [Spec(Specs.V1, Specs.Baseline)]
+    public sealed class Baseline : InternalResource<BaselineSpec>, IResource
     {
-        public Baseline(SourceFile source, ResourceMetadata metadata, ResourceHelpInfo info, BaselineSpec spec)
-            : base(metadata)
+        public Baseline(string apiVersion, SourceFile source, ResourceMetadata metadata, ResourceHelpInfo info, BaselineSpec spec)
+            : base(ResourceKind.Baseline, apiVersion, source, metadata, info, spec)
         {
-            Info = info;
-            Source = source;
-            Spec = spec;
-            Name = BaselineId = metadata.Name;
             Obsolete = ResourceHelper.IsObsolete(metadata);
         }
 
         [YamlIgnore()]
-        public readonly string BaselineId;
-
-        [YamlIgnore()]
-        public readonly string Name;
+        public string BaselineId => Name;
 
         [YamlIgnore()]
         internal readonly bool Obsolete;
-
-        /// <summary>
-        /// The script file path where the baseline is defined.
-        /// </summary>
-        [YamlIgnore()]
-        public readonly SourceFile Source;
-
-        public readonly ResourceHelpInfo Info;
-
-        /// <summary>
-        /// The name of the module where the baseline is defined, or null if the baseline is not defined in a module.
-        /// </summary>
-        [YamlIgnore()]
-        public readonly string ModuleName;
 
         /// <summary>
         /// A human readable block of text, used to identify the purpose of the rule.
@@ -64,17 +46,7 @@ namespace PSRule.Definitions
         [YamlIgnore]
         public string Synopsis => Info.Synopsis;
 
-        string ILanguageBlock.SourcePath => Source.Path;
-
-        string ILanguageBlock.Module => Source.ModuleName;
-
-        ResourceKind IResource.Kind => ResourceKind.Baseline;
-
-        string IResource.Id => BaselineId;
-
-        string IResource.Name => Name;
-
-        public override BaselineSpec Spec { get; }
+        string ILanguageBlock.Id => Name;
     }
 
     public sealed class BaselineSpec : Spec, IBaselineSpec
@@ -82,6 +54,8 @@ namespace PSRule.Definitions
         public BindingOption Binding { get; set; }
 
         public ConfigurationOption Configuration { get; set; }
+
+        public ConventionOption Convention { get; set; }
 
         public RuleOption Rule { get; set; }
     }

@@ -22,6 +22,7 @@ namespace PSRule
             Assert.Equal(expected.Name, document.Name);
             Assert.Equal(expected.Synopsis.Text, document.Synopsis.Text);
             Assert.Equal(expected.Recommendation.Text, document.Recommendation.Text);
+            Assert.Equal(expected.Notes.Text, document.Notes.Text);
             Assert.Equal(expected.Annotations["severity"], document.Annotations["severity"]);
             Assert.Equal(expected.Annotations["category"], document.Annotations["category"]);
             Assert.Equal(expected.Links.Length, document.Links.Length);
@@ -40,6 +41,7 @@ namespace PSRule
             Assert.Equal(expected.Name, document.Name);
             Assert.Equal(expected.Synopsis.Text, document.Synopsis.Text);
             Assert.Equal(expected.Recommendation.Text, document.Recommendation.Text);
+            Assert.Equal(expected.Notes.Text, document.Notes.Text);
             Assert.Equal(expected.Annotations["severity"], document.Annotations["severity"]);
             Assert.Equal(expected.Annotations["category"], document.Annotations["category"]);
             Assert.Equal(expected.Links.Length, document.Links.Length);
@@ -51,13 +53,17 @@ namespace PSRule
 
         private RuleDocument GetExpected()
         {
-            var annotations = new Hashtable();
-            annotations["severity"] = "Critical";
-            annotations["category"] = "Security";
+            var annotations = new Hashtable
+            {
+                ["severity"] = "Critical",
+                ["category"] = "Security"
+            };
 
-            var links = new List<Link>();
-            links.Add(new Link { Name = "PSRule", Uri = "https://github.com/Microsoft/PSRule" });
-            links.Add(new Link { Name = "Stable tags", Uri = "https://docs.microsoft.com/en-us/azure/container-registry/container-registry-image-tag-version#stable-tags" });
+            var links = new List<Link>
+            {
+                new Link { Name = "PSRule", Uri = "https://github.com/Microsoft/PSRule" },
+                new Link { Name = "Stable tags", Uri = "https://docs.microsoft.com/en-us/azure/container-registry/container-registry-image-tag-version#stable-tags" }
+            };
 
             var result = new RuleDocument(name: "Use specific tags")
             {
@@ -66,6 +72,15 @@ namespace PSRule
                 Recommendation = new TextBlock(text: @"Deployments or pods should identify a specific tag to use for container images instead of latest. When latest is used it may be hard to determine which version of the image is running.
 When using variable tags such as v1.0 (which may refer to v1.0.0 or v1.0.1) consider using imagePullPolicy: Always to ensure that the an out-of-date cached image is not used.
 The latest tag automatically uses imagePullPolicy: Always instead of the default imagePullPolicy: IfNotPresent."),
+                Notes = new TextBlock(@"Test that [isIgnored].
+
+{
+    ""type"": ""Microsoft.Network/virtualNetworks"",
+    ""name"": ""[parameters('VNETName')]"",
+    ""apiVersion"": ""2020-06-01"",
+    ""location"": ""[parameters('location')]"",
+    ""properties"": {}
+}"),
                 Links = links.ToArray()
             };
             return result;
@@ -74,7 +89,7 @@ The latest tag automatically uses imagePullPolicy: Always instead of the default
         private RuleDocument GetDocument(TokenStream stream)
         {
             var lexer = new RuleLexer();
-            return lexer.Process(stream: stream);
+            return lexer.Process(stream);
         }
 
         private TokenStream GetToken(bool nx)
@@ -85,9 +100,9 @@ The latest tag automatically uses imagePullPolicy: Always instead of the default
             {
                 content = content.Replace("\r\n", "\n");
             }
-            else if (!content.Contains("\r\n"))
+            else
             {
-                content = content.Replace("\n", "\r\n");
+                content = content.Replace("\r\n", "\n").Replace("\n", "\r\n");
             }
             return reader.Read(content, Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "RuleDocument.md"));
         }

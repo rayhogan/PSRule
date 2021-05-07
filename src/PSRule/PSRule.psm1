@@ -61,6 +61,9 @@ function Invoke-PSRule {
         [Parameter(Mandatory = $False)]
         [PSRule.Configuration.BaselineOption]$Baseline,
 
+        [Parameter(Mandatory = $False)]
+        [String[]]$Convention,
+
         # A list of paths to check for rule definitions
         [Parameter(Mandatory = $False, Position = 0)]
         [Alias('p')]
@@ -154,6 +157,7 @@ function Invoke-PSRule {
         $builder = [PSRule.Pipeline.PipelineBuilder]::Invoke($sourceFiles, $Option, $PSCmdlet, $ExecutionContext);
         $builder.Name($Name);
         $builder.Tag($Tag);
+        $builder.Convention($Convention);
         $builder.UseBaseline($Baseline);
 
         if ($PSBoundParameters.ContainsKey('InputPath')) {
@@ -215,6 +219,9 @@ function Test-PSRuleTarget {
         [Parameter(Mandatory = $False)]
         [ValidateSet('None', 'Yaml', 'Json', 'Markdown', 'PowerShellData', 'File', 'Detect')]
         [PSRule.Configuration.InputFormat]$Format,
+
+        [Parameter(Mandatory = $False)]
+        [String[]]$Convention,
 
         # A list of paths to check for rule definitions
         [Parameter(Mandatory = $False, Position = 0)]
@@ -300,6 +307,7 @@ function Test-PSRuleTarget {
         $builder = [PSRule.Pipeline.PipelineBuilder]::Test($sourceFiles, $Option, $PSCmdlet, $ExecutionContext);
         $builder.Name($Name);
         $builder.Tag($Tag);
+        $builder.Convention($Convention);
 
         if ($PSBoundParameters.ContainsKey('InputPath')) {
             $builder.InputPath($InputPath);
@@ -465,8 +473,18 @@ function Assert-PSRule {
         [PSRule.Configuration.BaselineOption]$Baseline,
 
         [Parameter(Mandatory = $False)]
+        [String[]]$Convention,
+
+        [Parameter(Mandatory = $False)]
         [ValidateSet('Client', 'Plain', 'AzurePipelines', 'GitHubActions')]
         [PSRule.Configuration.OutputStyle]$Style = [PSRule.Configuration.OutputStyle]::Client,
+
+        [Parameter(Mandatory = $False)]
+        [PSRule.Rules.RuleOutcome]$Outcome = [PSRule.Rules.RuleOutcome]::Processed,
+
+        [Parameter(Mandatory = $False)]
+        [ValidateSet('Detail', 'Summary')]
+        [PSRule.Configuration.ResultFormat]$As = [PSRule.Configuration.ResultFormat]::Detail,
 
         # A list of paths to check for rule definitions
         [Parameter(Mandatory = $False, Position = 0)]
@@ -552,6 +570,12 @@ function Assert-PSRule {
         if ($PSBoundParameters.ContainsKey('TargetType')) {
             $Option.Input.TargetType = $TargetType;
         }
+        if ($PSBoundParameters.ContainsKey('As')) {
+            $Option.Output.As = $As;
+        }
+        if ($PSBoundParameters.ContainsKey('Outcome')) {
+            $Option.Output.Outcome = $Outcome;
+        }
         if ($PSBoundParameters.ContainsKey('Style')) {
             $Option.Output.Style = $Style;
         }
@@ -568,6 +592,7 @@ function Assert-PSRule {
         $builder = [PSRule.Pipeline.PipelineBuilder]::Assert($sourceFiles, $Option, $PSCmdlet, $ExecutionContext);;
         $builder.Name($Name);
         $builder.Tag($Tag);
+        $builder.Convention($Convention);
         $builder.UseBaseline($Baseline);
         $builder.ResultVariable($ResultVariable);
 
@@ -1006,6 +1031,10 @@ function New-PSRuleOption {
         [Parameter(Mandatory = $False)]
         [String]$BindingNameSeparator = '/',
 
+        # Sets the Binding.PreferTargetInfo option
+        [Parameter(Mandatory = $False)]
+        [System.Boolean]$BindingPreferTargetInfo = $False,
+
         # Sets the Binding.TargetName option
         [Parameter(Mandatory = $False)]
         [Alias('BindingTargetName')]
@@ -1019,6 +1048,11 @@ function New-PSRuleOption {
         # Sets the Binding.UseQualifiedName option
         [Parameter(Mandatory = $False)]
         [System.Boolean]$BindingUseQualifiedName = $False,
+
+        # Sets the Convention.Include option
+        [Parameter(Mandatory = $False)]
+        [Alias('ConventionInclude')]
+        [String[]]$Convention,
 
         # Sets the Execution.InconclusiveWarning option
         [Parameter(Mandatory = $False)]
@@ -1035,6 +1069,10 @@ function New-PSRuleOption {
         [ValidateSet('None', 'Yaml', 'Json', 'Markdown', 'PowerShellData', 'Detect')]
         [Alias('InputFormat')]
         [PSRule.Configuration.InputFormat]$Format = 'Detect',
+
+        # Sets the Input.IgnoreGitPath option
+        [Parameter(Mandatory = $False)]
+        [System.Boolean]$InputIgnoreGitPath = $True,
 
         # Sets the Input.ObjectPath option
         [Parameter(Mandatory = $False)]
@@ -1208,6 +1246,10 @@ function Set-PSRuleOption {
         [Parameter(Mandatory = $False)]
         [String]$BindingNameSeparator = '/',
 
+        # Sets the Binding.PreferTargetInfo option
+        [Parameter(Mandatory = $False)]
+        [System.Boolean]$BindingPreferTargetInfo = $False,
+
         # Sets the Binding.TargetName option
         [Parameter(Mandatory = $False)]
         [Alias('BindingTargetName')]
@@ -1221,6 +1263,11 @@ function Set-PSRuleOption {
         # Sets the Binding.UseQualifiedName option
         [Parameter(Mandatory = $False)]
         [System.Boolean]$BindingUseQualifiedName = $False,
+
+        # Sets the Convention.Include option
+        [Parameter(Mandatory = $False)]
+        [Alias('ConventionInclude')]
+        [String[]]$Convention,
 
         # Sets the Execution.InconclusiveWarning option
         [Parameter(Mandatory = $False)]
@@ -1237,6 +1284,10 @@ function Set-PSRuleOption {
         [ValidateSet('None', 'Yaml', 'Json', 'Markdown', 'PowerShellData', 'Detect')]
         [Alias('InputFormat')]
         [PSRule.Configuration.InputFormat]$Format = 'Detect',
+
+        # Sets the Input.IgnoreGitPath option
+        [Parameter(Mandatory = $False)]
+        [System.Boolean]$InputIgnoreGitPath = $True,
 
         # Sets the Input.ObjectPath option
         [Parameter(Mandatory = $False)]
@@ -1417,6 +1468,9 @@ function Rule {
 
         [Parameter(Mandatory = $False)]
         [String[]]$Type,
+
+        [Parameter(Mandatory = $False)]
+        [String[]]$With,
 
         # Any dependencies for this rule
         [Parameter(Mandatory = $False)]
@@ -1622,6 +1676,31 @@ function Recommend {
     }
 }
 
+function Export-PSRuleConvention {
+    [CmdletBinding()]
+    [OutputType([void])]
+    param (
+        [Parameter(Mandatory = $True, Position = 0)]
+        [String]$Name,
+
+        [Parameter(Mandatory = $False)]
+        [ScriptBlock]$Begin,
+
+        [Parameter(Mandatory = $False, Position = 1)]
+        [ScriptBlock]$Process,
+
+        [Parameter(Mandatory = $False)]
+        [ScriptBlock]$End,
+
+        [Parameter(Mandatory = $False)]
+        [ScriptBlock]$If
+    )
+    begin {
+        # This is just a stub to improve rule authoring and discovery
+        Write-Error -Message $LocalizedHelp.KeywordOutsideEngine -Category InvalidOperation;
+    }
+}
+
 #endregion Keywords
 
 #
@@ -1792,6 +1871,10 @@ function SetOptions {
         [Parameter(Mandatory = $False)]
         [String]$BindingNameSeparator = '/',
 
+        # Sets the Binding.PreferTargetInfo option
+        [Parameter(Mandatory = $False)]
+        [System.Boolean]$BindingPreferTargetInfo = $False,
+
         # Sets the Binding.TargetName option
         [Parameter(Mandatory = $False)]
         [Alias('BindingTargetName')]
@@ -1805,6 +1888,11 @@ function SetOptions {
         # Sets the Binding.UseQualifiedName option
         [Parameter(Mandatory = $False)]
         [System.Boolean]$BindingUseQualifiedName = $False,
+
+        # Sets the Convention.Include option
+        [Parameter(Mandatory = $False)]
+        [Alias('ConventionInclude')]
+        [String[]]$Convention,
 
         # Sets the Execution.InconclusiveWarning option
         [Parameter(Mandatory = $False)]
@@ -1821,6 +1909,10 @@ function SetOptions {
         [ValidateSet('None', 'Yaml', 'Json', 'Markdown', 'PowerShellData', 'Detect')]
         [Alias('InputFormat')]
         [PSRule.Configuration.InputFormat]$Format = 'Detect',
+
+        # Sets the Input.IgnoreGitPath option
+        [Parameter(Mandatory = $False)]
+        [System.Boolean]$InputIgnoreGitPath = $True,
 
         # Sets the Input.ObjectPath option
         [Parameter(Mandatory = $False)]
@@ -1893,6 +1985,11 @@ function SetOptions {
             $Option.Binding.IgnoreCase = $BindingIgnoreCase;
         }
 
+        # Sets option Binding.PreferTargetInfo
+        if ($PSBoundParameters.ContainsKey('BindingPreferTargetInfo')) {
+            $Option.Binding.PreferTargetInfo = $BindingPreferTargetInfo;
+        }
+
         # Sets option Binding.Field
         if ($PSBoundParameters.ContainsKey('BindingField')) {
             $Option.Binding.Field = $BindingField;
@@ -1913,9 +2010,14 @@ function SetOptions {
             $Option.Binding.TargetType = $TargetType;
         }
 
-         # Sets option Binding.UseQualifiedName
-         if ($PSBoundParameters.ContainsKey('BindingUseQualifiedName')) {
+        # Sets option Binding.UseQualifiedName
+        if ($PSBoundParameters.ContainsKey('BindingUseQualifiedName')) {
             $Option.Binding.UseQualifiedName = $BindingUseQualifiedName;
+        }
+
+        # Sets option Convention.Include
+        if ($PSBoundParameters.ContainsKey('Convention')) {
+            $Option.Convention.Include = $Convention;
         }
 
         # Sets option Execution.InconclusiveWarning
@@ -1931,6 +2033,11 @@ function SetOptions {
         # Sets option Input.Format
         if ($PSBoundParameters.ContainsKey('Format')) {
             $Option.Input.Format = $Format;
+        }
+
+        # Sets option Input.IgnoreGitPath
+        if ($PSBoundParameters.ContainsKey('InputIgnoreGitPath')) {
+            $Option.Input.IgnoreGitPath = $InputIgnoreGitPath;
         }
 
         # Sets option Input.ObjectPath
@@ -2057,6 +2164,7 @@ function InitEditorServices {
                 'Within'
                 'Reason'
                 'Recommend'
+                'Export-PSRuleConvention'
             );
 
             # Export variables

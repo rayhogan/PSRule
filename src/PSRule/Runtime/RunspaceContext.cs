@@ -2,9 +2,13 @@
 // Licensed under the MIT License.
 
 using PSRule.Configuration;
+using PSRule.Definitions;
+using PSRule.Definitions.Selectors;
+using PSRule.Pipeline;
 using PSRule.Resources;
 using PSRule.Rules;
 using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
@@ -14,8 +18,39 @@ using System.Text;
 using System.Threading;
 using static PSRule.Pipeline.PipelineContext;
 
-namespace PSRule.Pipeline
+namespace PSRule.Runtime
 {
+    [Flags]
+    internal enum RunspaceScope
+    {
+        None = 0,
+
+        Source = 1,
+
+        /// <summary>
+        /// Executing a rule.
+        /// </summary>
+        Rule = 2,
+
+        /// <summary>
+        /// Executing a rule precondition.
+        /// </summary>
+        Precondition = 4,
+
+        /// <summary>
+        /// Execution is currently parsing YAML objects.
+        /// </summary>
+        Resource = 8,
+
+        ConventionBegin = 16,
+        ConventionProcess = 32,
+        ConventionEnd = 64,
+
+        Convention = ConventionBegin | ConventionProcess | ConventionEnd,
+        Runtime = Rule | Precondition | Convention,
+        All = Source | Rule | Precondition | Resource | Convention,
+    }
+
     /// <summary>
     /// A context for a PSRule runspace.
     /// </summary>
@@ -37,13 +72,14 @@ namespace PSRule.Pipeline
         internal RuleRecord RuleRecord;
         internal PSObject TargetObject;
         internal RuleBlock RuleBlock;
-        
+
         internal SourceScope Source;
 
         private readonly bool _InconclusiveWarning;
         private readonly bool _NotProcessedWarning;
         private readonly OutcomeLogStream _FailStream;
         private readonly OutcomeLogStream _PassStream;
+        private readonly Stack<RunspaceScope> _Scope;
 
         /// <summary>
         /// Track common warnings, to only raise once.
@@ -59,6 +95,7 @@ namespace PSRule.Pipeline
 
         private readonly Stopwatch _RuleTimer;
         private readonly List<string> _Reason;
+        private readonly List<IConvention> _Conventions;
 
         // Track whether Dispose has been called.
         private bool _Disposed;
@@ -78,11 +115,40 @@ namespace PSRule.Pipeline
             _ObjectNumber = -1;
             _RuleTimer = new Stopwatch();
             _Reason = new List<string>();
+            _Conventions = new List<IConvention>();
+            _Scope = new Stack<RunspaceScope>();
         }
 
-        public bool HadErrors
+        public bool HadErrors => _RuleErrors > 0;
+
+        public Hashtable Data { get; private set; }
+
+        public IEnumerable<InvokeResult> Output { get; private set; }
+
+        internal bool IsScope(RunspaceScope scope)
         {
-            get { return _RuleErrors > 0; }
+            if (scope == RunspaceScope.None && (_Scope == null || _Scope.Count == 0))
+                return true;
+
+            if (_Scope == null || _Scope.Count == 0)
+                return false;
+
+            var current = _Scope.Peek();
+            return scope.HasFlag(current);
+        }
+
+        internal void PushScope(RunspaceScope scope)
+        {
+            _Scope.Push(scope);
+        }
+
+        internal void PopScope(RunspaceScope scope)
+        {
+            var current = _Scope.Peek();
+            if (current != scope)
+                throw new RuntimeScopeException();
+
+            _Scope.Pop();
         }
 
         public void Pass()
@@ -164,6 +230,14 @@ namespace PSRule.Pipeline
             Writer.WriteDebug(PSRuleResources.DebugPropertyObsolete, RuleBlock.RuleName, variableName, propertyName);
         }
 
+        public void WarnMissingApiVersion(ResourceKind kind, string resourceId)
+        {
+            if (Writer == null || !Writer.ShouldWriteWarning())
+                return;
+
+            Writer.WriteWarning(PSRuleResources.MissingApiVersion, kind.ToString(), resourceId);
+        }
+
         public void ErrorInvaildRuleResult()
         {
             if (Writer == null || !Writer.ShouldWriteError())
@@ -185,13 +259,13 @@ namespace PSRule.Pipeline
             Writer.WriteVerbose($"[PSRule][D] -- Discovering rules in: {path}");
         }
 
-        public void VerboseFoundRule(string ruleName, string moduleName, string scriptName)
+        public void VerboseFoundResource(string name, string moduleName, string scriptName)
         {
             if (Writer == null || !Writer.ShouldWriteVerbose())
                 return;
 
             var m = string.IsNullOrEmpty(moduleName) ? "." : moduleName;
-            Writer.WriteVerbose($"[PSRule][D] -- Found {m}\\{ruleName} in {scriptName}");
+            Writer.WriteVerbose($"[PSRule][D] -- Found {m}\\{name} in {scriptName}");
         }
 
         public void VerboseObjectStart()
@@ -249,7 +323,7 @@ namespace PSRule.Pipeline
 
             var record = new ErrorRecord
             (
-                exception: new ParseException(message: error.Message, errorId: error.ErrorId),
+                exception: new Pipeline.ParseException(message: error.Message, errorId: error.ErrorId),
                 errorId: error.ErrorId,
                 errorCategory: ErrorCategory.InvalidOperation,
                 targetObject: null
@@ -465,13 +539,42 @@ namespace PSRule.Pipeline
         /// <summary>
         /// Increment the pipeline object number.
         /// </summary>
-        public void SetTargetObject(PSObject targetObject)
+        public void EnterTargetObject(PSObject targetObject)
         {
             _ObjectNumber++;
             TargetObject = targetObject;
+            Data = new Hashtable();
             Pipeline.Binder.Bind(Pipeline.Baseline, TargetObject);
             if (Pipeline.ContentCache.Count > 0)
                 Pipeline.ContentCache.Clear();
+
+            // Run conventions
+            RunConventionBegin();
+        }
+
+        public void ExitTargetObject()
+        {
+            RunConventionProcess();
+
+            TargetObject = null;
+            Data = null;
+        }
+
+        public bool TrySelector(string name)
+        {
+            name = ResourceHelper.GetId(Source.File.ModuleName, name);
+            if (TargetObject == null || Pipeline == null || !Pipeline.Selector.TryGetValue(name, out SelectorVisitor selector))
+                return false;
+
+            //var annotation = TargetObject.GetAnnotation<SelectorTargetAnnotation>();
+            //if (annotation.TryGetSelectorResult(selector, out bool result))
+            //    return result;
+
+            //result = selector.Match(TargetObject.Value);
+            //annotation.SetSelectorResult(selector, result);
+            //return result;
+
+            return selector.Match(TargetObject);
         }
 
         /// <summary>
@@ -489,7 +592,8 @@ namespace PSRule.Pipeline
                 targetType: Pipeline.Binder.TargetType,
                 tag: ruleBlock.Tag,
                 info: ruleBlock.Info,
-                field: Pipeline.Binder.Field
+                field: Pipeline.Binder.Field,
+                data: Data
             );
 
             if (Writer != null)
@@ -522,9 +626,41 @@ namespace PSRule.Pipeline
             _Reason.Clear();
         }
 
+        internal void Import(IConvention resource)
+        {
+            _Conventions.Add(resource);
+        }
+
+        private void RunConventionBegin()
+        {
+            if (_Conventions == null || _Conventions.Count == 0)
+                return;
+
+            for (var i = 0; i < _Conventions.Count; i++)
+                _Conventions[i].Begin(this, null);
+        }
+
+        private void RunConventionProcess()
+        {
+            if (_Conventions == null || _Conventions.Count == 0)
+                return;
+
+            for (var i = 0; i < _Conventions.Count; i++)
+                _Conventions[i].Process(this, null);
+        }
+
+        private void RunConventionEnd()
+        {
+            if (_Conventions == null || _Conventions.Count == 0)
+                return;
+
+            for (var i = 0; i < _Conventions.Count; i++)
+                _Conventions[i].End(this, null);
+        }
+
         public void WriteReason(string text)
         {
-            if (string.IsNullOrEmpty(text) || Pipeline.ExecutionScope != ExecutionScope.Condition)
+            if (string.IsNullOrEmpty(text) || !IsScope(RunspaceScope.Rule))
                 return;
 
             _Reason.Add(text);
@@ -532,7 +668,13 @@ namespace PSRule.Pipeline
 
         public void Begin()
         {
-            Pipeline.Baseline.Init(this);
+            Pipeline.Init(this);
+        }
+
+        public void End(IEnumerable<InvokeResult> output)
+        {
+            Output = output;
+            RunConventionEnd();
         }
 
         public string GetLocalizedPath(string file)
@@ -547,7 +689,7 @@ namespace PSRule.Pipeline
                 _RaisedUsingInvariantCulture = true;
                 return null;
             }
-            
+
             for (var i = 0; i < culture.Length; i++)
             {
                 var path = Path.Combine(Source.File.HelpPath, culture[i], file);
@@ -582,6 +724,11 @@ namespace PSRule.Pipeline
                 {
                     _RuleTimer.Stop();
                     _Reason.Clear();
+                    for (var i = 0; _Conventions != null && i < _Conventions.Count; i++)
+                    {
+                        if (_Conventions[i] is IDisposable d)
+                            d.Dispose();
+                    }
                 }
                 _Disposed = true;
             }

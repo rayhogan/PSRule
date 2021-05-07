@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 
 namespace PSRule.Configuration
@@ -70,11 +71,13 @@ namespace PSRule.Configuration
 
         internal static LoggingOption Combine(LoggingOption o1, LoggingOption o2)
         {
-            var result = new LoggingOption(o1);
-            result.LimitDebug = o1.LimitDebug ?? o2.LimitDebug;
-            result.LimitVerbose = o1.LimitVerbose ?? o2.LimitVerbose;
-            result.RuleFail = o1.RuleFail ?? o2.RuleFail;
-            result.RulePass = o1.RulePass ?? o2.RulePass;
+            var result = new LoggingOption(o1)
+            {
+                LimitDebug = o1.LimitDebug ?? o2.LimitDebug,
+                LimitVerbose = o1.LimitVerbose ?? o2.LimitVerbose,
+                RuleFail = o1.RuleFail ?? o2.RuleFail,
+                RulePass = o1.RulePass ?? o2.RulePass
+            };
             return result;
         }
 
@@ -101,5 +104,35 @@ namespace PSRule.Configuration
         /// </summary>
         [DefaultValue(null)]
         public OutcomeLogStream? RulePass { get; set; }
+
+        internal void Load(EnvironmentHelper env)
+        {
+            if (env.TryStringArray("PSRULE_LOGGING_LIMITDEBUG", out string[] limitDebug))
+                LimitDebug = limitDebug;
+
+            if (env.TryStringArray("PSRULE_LOGGING_LIMITVERBOSE", out string[] limitVerbose))
+                LimitVerbose = limitVerbose;
+
+            if (env.TryEnum("PSRULE_LOGGING_RULEFAIL", out OutcomeLogStream ruleFail))
+                RuleFail = ruleFail;
+
+            if (env.TryEnum("PSRULE_LOGGING_RULEPASS", out OutcomeLogStream rulePass))
+                RulePass = rulePass;
+        }
+
+        internal void Load(Dictionary<string, object> index)
+        {
+            if (index.TryPopStringArray("Logging.LimitDebug", out string[] limitDebug))
+                LimitDebug = limitDebug;
+
+            if (index.TryPopStringArray("Logging.LimitVerbose", out string[] limitVerbose))
+                LimitVerbose = limitVerbose;
+
+            if (index.TryPopEnum("Logging.RuleFail", out OutcomeLogStream ruleFail))
+                RuleFail = ruleFail;
+
+            if (index.TryPopEnum("Logging.RulePass", out OutcomeLogStream rulePass))
+                RulePass = rulePass;
+        }
     }
 }

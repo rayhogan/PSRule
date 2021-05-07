@@ -16,21 +16,22 @@ namespace PSRule.Pipeline
         private readonly List<string> _Expressions;
         private readonly bool _MatchResult;
 
-        private PathFilterBuilder(string basePath, string[] expressions, bool matchResult)
+        private PathFilterBuilder(string basePath, string[] expressions, bool matchResult, bool ignoreGitPath)
         {
             _BasePath = basePath;
             _Expressions = expressions == null || expressions.Length == 0 ? new List<string>() : new List<string>(expressions);
             _MatchResult = matchResult;
+            if (ignoreGitPath)
+                _Expressions.Add(".git/");
         }
 
-        internal static PathFilterBuilder Create(string basePath, string[] expressions, bool matchResult = false)
+        internal static PathFilterBuilder Create(string basePath, string[] expressions, bool ignoreGitPath)
         {
-            return new PathFilterBuilder(basePath, expressions, matchResult);
+            return new PathFilterBuilder(basePath, expressions, false, ignoreGitPath);
         }
 
         internal void UseGitIgnore(string basePath = null)
         {
-            _Expressions.Add(".git/");
             _Expressions.Add("!.git/HEAD");
             ReadFile(Path.Combine(basePath ?? _BasePath, GitIgnoreFileName));
         }
@@ -55,7 +56,7 @@ namespace PSRule.Pipeline
         // Path separators
         private const char Slash = '/';
         private const char BackSlash = '\\';
-        
+
         // Operators
         private const char Asterix = '*'; // Match multiple characters except '/'
         private const char Question = '?'; // Match any character except '/'
@@ -157,7 +158,6 @@ namespace PSRule.Pipeline
                 if (!IsWildcardAA())
                     return false;
 
-                
                 Skip(2); // Skip **
                 SkipSeparator(); // Skip **/
                 SkipMatchAA(); // Skip **/**/

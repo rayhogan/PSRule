@@ -4,9 +4,7 @@
 using PSRule.Configuration;
 using PSRule.Pipeline;
 using PSRule.Resources;
-using PSRule.Rules;
 using System;
-using System.Collections.Generic;
 using System.Globalization;
 using System.IO;
 using System.Management.Automation;
@@ -57,7 +55,7 @@ namespace PSRule
         public void PipelineWithInvariantCulture()
         {
             PSRuleOption.UseCurrentCulture(CultureInfo.InvariantCulture);
-            var context = PipelineContext.New(GetOption(), null, null, new OptionContext(), null);
+            var context = PipelineContext.New(GetOption(), null, null, null, new OptionContext(), null);
             var writer = new TestWriter(GetOption());
             var pipeline = new GetRulePipeline(context, GetSource(), new PipelineReader(null, null), writer, false);
             try
@@ -89,6 +87,8 @@ namespace PSRule
             Assert.Null(builder.Build());
         }
 
+        #region Helper methods
+
         private static Source[] GetSource()
         {
             var builder = new SourcePipelineBuilder(null, null);
@@ -108,5 +108,7 @@ namespace PSRule
         {
             return Path.Combine(AppDomain.CurrentDomain.BaseDirectory, fileName);
         }
+
+        #endregion Helper methods
     }
 }

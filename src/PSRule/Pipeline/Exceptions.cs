@@ -108,6 +108,12 @@ namespace PSRule.Pipeline
         {
         }
 
+        internal PipelineSerializationException(string message, string path, Exception innerException)
+            : this(message, innerException)
+        {
+            Path = path;
+        }
+
         /// <summary>
         /// Creates a serialization exception.
         /// </summary>
@@ -128,6 +134,11 @@ namespace PSRule.Pipeline
         private PipelineSerializationException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
+
+        /// <summary>
+        /// The path to the file.
+        /// </summary>
+        public string Path { get; }
 
         [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
         public override void GetObjectData(SerializationInfo info, StreamingContext context)
@@ -193,8 +204,6 @@ namespace PSRule.Pipeline
             info.AddValue("ErrorId", ErrorId);
             base.GetObjectData(info, context);
         }
-
-        
     }
 
     /// <summary>
@@ -268,6 +277,14 @@ namespace PSRule.Pipeline
         {
         }
 
+        public PipelineConfigurationException(string message) : base(message)
+        {
+        }
+
+        public PipelineConfigurationException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+
         /// <summary>
         /// Creates a pipeline configuration exception.
         /// </summary>
@@ -310,7 +327,47 @@ namespace PSRule.Pipeline
         {
         }
 
+        public FailPipelineException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+
         private FailPipelineException(SerializationInfo info, StreamingContext context) : base(info, context)
+        {
+        }
+
+        [SecurityPermission(SecurityAction.Demand, SerializationFormatter = true)]
+        public override void GetObjectData(SerializationInfo info, StreamingContext context)
+        {
+            if (info == null)
+                throw new ArgumentNullException(nameof(info));
+
+            base.GetObjectData(info, context);
+        }
+    }
+
+    [Serializable]
+    public sealed class RuntimeScopeException : PipelineException
+    {
+        /// <summary>
+        /// Creates a rule runtime exception.
+        /// </summary>
+        public RuntimeScopeException()
+        {
+        }
+
+        /// <summary>
+        /// Creates a rule runtime exception.
+        /// </summary>
+        /// <param name="message">The detail of the exception.</param>
+        public RuntimeScopeException(string message) : base(message)
+        {
+        }
+
+        public RuntimeScopeException(string message, Exception innerException) : base(message, innerException)
+        {
+        }
+
+        private RuntimeScopeException(SerializationInfo info, StreamingContext context) : base(info, context)
         {
         }
 

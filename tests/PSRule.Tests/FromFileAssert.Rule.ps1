@@ -28,6 +28,12 @@ Rule 'Assert.Self' {
     $Assert.EndsWith('Name', '.', 'ame')
 }
 
+# Synopsis: Test for $Assert.Create
+Rule 'Assert.Create' {
+    $Assert.Create($TargetObject.Bool, "Reason 1")
+    $Assert.Create($TargetObject.Bool, "Reason {0}", 2)
+}
+
 # Synopsis: Test for $Assert.Complete
 Rule 'Assert.Complete' {
     $Assert.HasField($TargetObject, 'Name').Complete() -and
@@ -75,6 +81,7 @@ Rule 'Assert.Greater' {
     $Assert.Greater($TargetObject, 'CompareNumeric', 2)
     $Assert.Greater($TargetObject, 'CompareArray', 2)
     $Assert.Greater($TargetObject, 'CompareString', 2)
+    $Assert.Greater($TargetObject, 'CompareDate', 2)
 }
 
 # Synopsis: Test for $Assert.GreaterOrEqual
@@ -82,6 +89,7 @@ Rule 'Assert.GreaterOrEqual' {
     $Assert.GreaterOrEqual($TargetObject, 'CompareNumeric', 3)
     $Assert.GreaterOrEqual($TargetObject, 'CompareArray', 3)
     $Assert.GreaterOrEqual($TargetObject, 'CompareString', 3)
+    $Assert.GreaterOrEqual($TargetObject, 'CompareDate', 2)
 }
 
 # Synopsis: Test for $Assert.HasField
@@ -155,11 +163,53 @@ Rule 'Assert.IsUpper' {
     $Assert.IsUpper($TargetObject, 'LetterUpper', $True)
 }
 
+# Synopsis: Test for $Assert.IsNumeric
+Rule 'Assert.IsNumeric' {
+    $Assert.IsNumeric($TargetObject, 'IsInteger')
+    $Assert.IsNumeric($TargetObject, 'IsInteger', $True)
+}
+
+# Synopsis: Test for $Assert.IsInteger
+Rule 'Assert.IsInteger' {
+    $Assert.IsInteger($TargetObject, 'IsInteger')
+    $Assert.IsInteger($TargetObject, 'IsInteger', $True)
+}
+
+# Synopsis: Test for $Assert.IsBoolean
+Rule 'Assert.IsBoolean' {
+    $Assert.IsBoolean($TargetObject, 'IsBoolean')
+    $Assert.IsBoolean($TargetObject, 'IsBoolean', $True)
+}
+
+# Synopsis: Test for $Assert.IsArray
+Rule 'Assert.IsArray' {
+    $Assert.IsArray($TargetObject, 'IsArray')
+}
+
+# Synopsis: Test for $Assert.IsString
+Rule 'Assert.IsString' {
+    $Assert.IsString($TargetObject, 'IsInteger')
+}
+
+# Synopsis: Test for $Assert.IsDateTime
+Rule 'Assert.IsDateTime' {
+    $Assert.IsDateTime($TargetObject, 'IsDateTime')
+    $Assert.IsDateTime($TargetObject, 'IsDateTime', $True)
+}
+
+# Synopsis: Test for $Assert.TypeOf
+Rule 'Assert.TypeOf' {
+    $Assert.TypeOf($TargetObject, 'IsInteger', @([long], [int]))
+    $Assert.TypeOf($TargetObject, 'IsArray', [array])
+    $Assert.TypeOf($TargetObject, 'IsBoolean', 'System.Boolean')
+}
+
 # Synopsis: Test for $Assert.Less
 Rule 'Assert.Less' {
     $Assert.Less($TargetObject, 'CompareNumeric', 2)
     $Assert.Less($TargetObject, 'CompareArray', 2)
     $Assert.Less($TargetObject, 'CompareString', 2)
+    $Assert.Less($TargetObject, 'CompareDate', 2)
 }
 
 # Synopsis: Test for $Assert.LessOrEqual
@@ -167,12 +217,19 @@ Rule 'Assert.LessOrEqual' {
     $Assert.LessOrEqual($TargetObject, 'CompareNumeric', 0)
     $Assert.LessOrEqual($TargetObject, 'CompareArray', 0)
     $Assert.LessOrEqual($TargetObject, 'CompareString', 0)
+    $Assert.LessOrEqual($TargetObject, 'CompareDate', 1)
 }
 
 # Synopsis: Test for $Assert.Match
 Rule 'Assert.Match' {
     $Assert.Match($TargetObject, 'Name', '^Test\w*2$')
     $Assert.Match($TargetObject, 'CompareString', '^(|ABC)$', $True)
+}
+
+# Synopsis: Test for $Assert.NotHasField
+Rule 'Assert.NotHasField' {
+    $Assert.NotHasField($TargetObject, 'Not')
+    $Assert.NotHasField($TargetObject, @('Not','OtherField'))
 }
 
 # Synopsis: Test for $Assert.NotIn
@@ -186,6 +243,23 @@ Rule 'Assert.NotIn' {
 Rule 'Assert.NotMatch' {
     $Assert.NotMatch($TargetObject, 'Name', '^Test\w*1$')
     $Assert.NotMatch($TargetObject, 'Type', '.*')
+}
+
+# Synopsis: Test for $Assert.NotNull
+Rule 'Assert.NotNull' {
+    $Assert.NotNull($TargetObject, 'Type')
+    $Assert.NotNull($TargetObject, 'Value')
+}
+
+# Synopsis: Test for $Assert.NotWithinPath
+Rule 'Assert.NotWithinPath' {
+    $Assert.NotWithinPath($TargetObject, 'ParentPath', @('tests/PSRule.Tests/notapath/'))
+}
+
+# Synopsis: Test for $Assert.Null
+Rule 'Assert.Null' {
+    $Assert.Null($TargetObject, 'Type')
+    $Assert.Null($TargetObject, 'Value')
 }
 
 # Synopsis: Test for $Assert.HasEmptyField
@@ -206,4 +280,9 @@ Rule 'Assert.StartsWith' {
 # Synopsis: Test for $Assert.Version
 Rule 'Assert.Version' {
     $Assert.Version($TargetObject, 'Version', '>1.0.0')
+}
+
+# Synopsis: Test for $Assert.WithinPath
+Rule 'Assert.WithinPath' {
+    $Assert.WithinPath($TargetObject, 'ParentPath', @('tests/PSRule.Tests/notapath/'))
 }

@@ -18,6 +18,23 @@
                 }
             ]
         },
+        "convention-option": {
+            "type": "object",
+            "title": "Convention options",
+            "description": "Options that configure conventions.",
+            "properties": {
+                "include": {
+                    "type": "array",
+                    "title": "Include conventions",
+                    "description": "An ordered list of conventions to include.",
+                    "items": {
+                        "type": "string"
+                    },
+                    "uniqueItems": true
+                }
+            },
+            "additionalProperties": false
+        },
         "binding-option": {
             "type": "object",
             "title": "Object binding",
@@ -51,6 +68,13 @@
                     "description": "Configures the separator to use for building a qualified name. The default is '/'.",
                     "markdownDescription": "Configures the separator to use for building a qualified name. The default is `/`. [See help](https://microsoft.github.io/PSRule/concepts/PSRule/en-US/about_PSRule_Options.html#bindingnameseparator)",
                     "default": "/"
+                },
+                "preferTargetInfo": {
+                    "type": "boolean",
+                    "title": "Prefer target info",
+                    "description": "Determines if binding prefers target info provided by the object over custom configuration. The default is false.",
+                    "markdownDescription": "Determines if binding prefers target info provided by the object over custom configuration. The default is `false`. [See help](https://microsoft.github.io/PSRule/concepts/PSRule/en-US/about_PSRule_Options.html#bindingprefertargetinfo)",
+                    "default": false
                 },
                 "targetName": {
                     "type": "array",
@@ -135,6 +159,13 @@
                         "Detect"
                     ],
                     "default": "Detect"
+                },
+                "ignoreGitPath": {
+                    "type": "boolean",
+                    "title": "Ignore .git path",
+                    "description": "Determine if files within the .git path are ignored when the -InputPath parameter is used.",
+                    "markdownDescription": "Determine if files within the `.git` path are ignored when the `-InputPath` parameter is used. [See help](https://microsoft.github.io/PSRule/concepts/PSRule/en-US/about_PSRule_Options.html#ignoregitpath)",
+                    "default": true
                 },
                 "objectPath": {
                     "type": "string",
@@ -398,6 +429,10 @@
                             "$ref": "#/definitions/configuration"
                         }
                     ]
+                },
+                "convention": {
+                    "type": "object",
+                    "$ref": "#/definitions/convention-option"
                 },
                 "execution": {
                     "type": "object",

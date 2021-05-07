@@ -216,9 +216,9 @@ namespace PSRule.Resources {
         /// <summary>
         ///   Looks up a localized string similar to The keyword &apos;{0}&apos; can not be nested in a Rule block..
         /// </summary>
-        internal static string KeywordScriptScope {
+        internal static string KeywordSourceScope {
             get {
-                return ResourceManager.GetString("KeywordScriptScope", resourceCulture);
+                return ResourceManager.GetString("KeywordSourceScope", resourceCulture);
             }
         }
         
@@ -246,6 +246,15 @@ namespace PSRule.Resources {
         internal static string MatchTrue {
             get {
                 return ResourceManager.GetString("MatchTrue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The {0} resource {1} does not have an apiVersion set. An apiVersion will be required in the next major version..
+        /// </summary>
+        internal static string MissingApiVersion {
+            get {
+                return ResourceManager.GetString("MissingApiVersion", resourceCulture);
             }
         }
         
@@ -300,6 +309,15 @@ namespace PSRule.Resources {
         internal static string PropertyObsolete {
             get {
                 return ResourceManager.GetString("PropertyObsolete", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to Failed to deserialize the file &apos;{0}&apos;: {1}.
+        /// </summary>
+        internal static string ReadFileFailed {
+            get {
+                return ResourceManager.GetString("ReadFileFailed", resourceCulture);
             }
         }
         
@@ -408,6 +426,33 @@ namespace PSRule.Resources {
         internal static string ScriptNotFound {
             get {
                 return ResourceManager.GetString("ScriptNotFound", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [PSRule][S][Trace] -- {0}: {1} {0} {2}.
+        /// </summary>
+        internal static string SelectorExpressionTrace {
+            get {
+                return ResourceManager.GetString("SelectorExpressionTrace", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [PSRule][S][Trace] -- {0}.
+        /// </summary>
+        internal static string SelectorMatchTrace {
+            get {
+                return ResourceManager.GetString("SelectorMatchTrace", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to [PSRule][S][Trace] -- {0}: {1}.
+        /// </summary>
+        internal static string SelectorTrace {
+            get {
+                return ResourceManager.GetString("SelectorTrace", resourceCulture);
             }
         }
         

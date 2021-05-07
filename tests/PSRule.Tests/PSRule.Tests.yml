@@ -15,6 +15,11 @@ configuration:
   option2: 2
   option3: [ 'option3a', 'option3b' ]
 
+# Configure conventions
+convention:
+  include:
+  - 'Convention1'
+
 # Configure binding
 binding:
   field:
@@ -22,6 +27,7 @@ binding:
     - resourceId
   ignoreCase: false
   nameSeparator: '::'
+  preferTargetInfo: true
   targetName:
   - ResourceName
   targetType:
@@ -37,6 +43,7 @@ execution:
 # Configure input options
 input:
   format: Yaml
+  ignoreGitPath: false
   objectPath: items
   pathIgnore:
   - '*.Designer.cs'

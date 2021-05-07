@@ -151,20 +151,11 @@ namespace PSRule.Resources {
         }
         
         /// <summary>
-        ///   Looks up a localized string similar to The field &apos;{0}&apos; does not exist..
+        ///   Looks up a localized string similar to The field &apos;{0}&apos; exists..
         /// </summary>
         internal static string HasField {
             get {
                 return ResourceManager.GetString("HasField", resourceCulture);
-            }
-        }
-        
-        /// <summary>
-        ///   Looks up a localized string similar to The value of &apos;{0}&apos; is null or empty..
-        /// </summary>
-        internal static string HasFieldValue {
-            get {
-                return ResourceManager.GetString("HasFieldValue", resourceCulture);
             }
         }
         
@@ -277,6 +268,24 @@ namespace PSRule.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The field &apos;{0}&apos; does not exist..
+        /// </summary>
+        internal static string NotHasField {
+            get {
+                return ResourceManager.GetString("NotHasField", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The value of &apos;{0}&apos; is null or empty..
+        /// </summary>
+        internal static string NotHasFieldValue {
+            get {
+                return ResourceManager.GetString("NotHasFieldValue", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to The field value &apos;{0}&apos; was in the set..
         /// </summary>
         internal static string NotIn {
@@ -291,6 +300,33 @@ namespace PSRule.Resources {
         internal static string NotMatchPattern {
             get {
                 return ResourceManager.GetString("NotMatchPattern", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The field value &apos;{0}&apos; is not null..
+        /// </summary>
+        internal static string NotNull {
+            get {
+                return ResourceManager.GetString("NotNull", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The file &apos;{0}&apos; is within the path &apos;{1}&apos;..
+        /// </summary>
+        internal static string NotWithinPath {
+            get {
+                return ResourceManager.GetString("NotWithinPath", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The field value &apos;{0}&apos; is null..
+        /// </summary>
+        internal static string Null {
+            get {
+                return ResourceManager.GetString("Null", resourceCulture);
             }
         }
         
@@ -340,6 +376,33 @@ namespace PSRule.Resources {
         }
         
         /// <summary>
+        ///   Looks up a localized string similar to The field value &apos;{2}&apos; of type {1} is not {0}..
+        /// </summary>
+        internal static string Type {
+            get {
+                return ResourceManager.GetString("Type", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The field value &apos;{1}&apos; of type {0} is not an integer..
+        /// </summary>
+        internal static string TypeInteger {
+            get {
+                return ResourceManager.GetString("TypeInteger", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The field value &apos;{1}&apos; of type {0} is not numeric..
+        /// </summary>
+        internal static string TypeNumeric {
+            get {
+                return ResourceManager.GetString("TypeNumeric", resourceCulture);
+            }
+        }
+        
+        /// <summary>
         ///   Looks up a localized string similar to None of the type name(s) match: {0}.
         /// </summary>
         internal static string TypeOf {
@@ -381,6 +444,15 @@ namespace PSRule.Resources {
         internal static string WithinNot {
             get {
                 return ResourceManager.GetString("WithinNot", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to The file &apos;{0}&apos; is not within the path &apos;{1}&apos;..
+        /// </summary>
+        internal static string WithinPath {
+            get {
+                return ResourceManager.GetString("WithinPath", resourceCulture);
             }
         }
     }

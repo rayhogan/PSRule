@@ -27,30 +27,20 @@ namespace PSRule.Pipeline
             _Fail = 0;
         }
 
-        internal long Time
-        {
-            get { return _Time; }
-        }
+        /// <summary>
+        /// The execution time of all rules in milliseconds.
+        /// </summary>
+        internal long Time => _Time;
 
-        internal int Total
-        {
-            get { return _Total; }
-        }
+        internal int Total => _Total;
 
-        internal int Error
-        {
-            get { return _Error; }
-        }
+        internal int Error => _Error;
 
-        internal int Fail
-        {
-            get { return _Fail; }
-        }
+        internal int Fail => _Fail;
 
-        internal RuleOutcome Outcome
-        {
-            get { return _Outcome; }
-        }
+        internal int Pass => _Total - _Error - _Fail;
+
+        internal RuleOutcome Outcome => _Outcome;
 
         /// <summary>
         /// Get the individual records for the target object.

@@ -22,7 +22,15 @@ namespace PSRule
             Assert.Equal("Test", actual[0].PropertyValue("spec").PropertyValue("properties").PropertyValue<string>("kind"));
             Assert.Equal(2, actual[1].PropertyValue("spec").PropertyValue("properties").PropertyValue<int>("value2"));
             Assert.Equal(2, actual[1].PropertyValue("spec").PropertyValue("properties").PropertyValue<PSObject[]>("array").Length);
-            Assert.Equal("TestObject1", PipelineHookActions.BindTargetName(null, false, actual[0]));
+            Assert.Equal("TestObject1", PipelineHookActions.BindTargetName(null, false, false, actual[0]));
+
+            // Array item
+            actual = PipelineReceiverActions.ConvertFromYaml(GetYamlContent("3"), PipelineReceiverActions.PassThru).ToArray();
+            Assert.Equal(2, actual.Length);
+            Assert.Equal("item1", actual[0].PropertyValue<string>("name"));
+            Assert.Equal("value1", actual[0].PropertyValue<string>("value"));
+            Assert.Equal("item2", actual[1].PropertyValue<string>("name"));
+            Assert.Equal("value2", actual[1].PropertyValue<string>("value"));
         }
 
         [Fact]
@@ -35,7 +43,7 @@ namespace PSRule
             Assert.Equal("Test", actual[0].PropertyValue("spec").PropertyValue("properties").PropertyValue<string>("kind"));
             Assert.Equal(2, actual[1].PropertyValue("spec").PropertyValue("properties").PropertyValue<int>("value2"));
             Assert.Equal(3, actual[1].PropertyValue("spec").PropertyValue("properties").PropertyValue<PSObject[]>("array").Length);
-            Assert.Equal("TestObject1", PipelineHookActions.BindTargetName(null, false, actual[0]));
+            Assert.Equal("TestObject1", PipelineHookActions.BindTargetName(null, false, false, actual[0]));
 
             // Single item
             actual = PipelineReceiverActions.ConvertFromJson(GetJsonContent("Single"), PipelineReceiverActions.PassThru).ToArray();
@@ -58,7 +66,7 @@ namespace PSRule
             Assert.Equal("Test", actual[0].PropertyValue("spec").PropertyValue("properties").PropertyValue<string>("kind"));
             Assert.Equal(1, actual[0].PropertyValue("spec").PropertyValue("properties").PropertyValue<int>("value1"));
             Assert.Equal(2, actual[0].PropertyValue("spec").PropertyValue("properties").PropertyValue<PSObject[]>("array").Length);
-            Assert.Equal("TestObject1", PipelineHookActions.BindTargetName(null, false, actual[0]));
+            Assert.Equal("TestObject1", PipelineHookActions.BindTargetName(null, false, false, actual[0]));
         }
 
         [Fact]
@@ -71,12 +79,12 @@ namespace PSRule
             Assert.Equal("Test", actual[0].PropertyValue("spec").PropertyValue("properties").PropertyValue<string>("kind"));
             Assert.Equal(1, actual[0].PropertyValue("spec").PropertyValue("properties").PropertyValue<int>("value1"));
             Assert.Equal(2, actual[0].PropertyValue("spec").PropertyValue("properties").PropertyValue<Array>("array").Length);
-            Assert.Equal("TestObject1", PipelineHookActions.BindTargetName(null, false, actual[0]));
+            Assert.Equal("TestObject1", PipelineHookActions.BindTargetName(null, false, false, actual[0]));
         }
 
-        private static string GetYamlContent()
+        private static string GetYamlContent(string suffix = "")
         {
-            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ObjectFromFile.yaml");
+            var path = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, $"ObjectFromFile{suffix}.yaml");
             return File.ReadAllText(path);
         }
 

@@ -10,6 +10,7 @@ namespace PSRule.Host
     {
         private readonly Dictionary<string, DependencyTarget> _Index;
         private readonly DependencyTarget[] _Targets;
+        private readonly Dictionary<DependencyTarget, DependencyTargetState> _State;
 
         // Track whether Dispose has been called.
         private bool _Disposed;
@@ -18,16 +19,11 @@ namespace PSRule.Host
         {
             _Targets = new DependencyTarget[targets.Length];
             _Index = new Dictionary<string, DependencyTarget>(targets.Length);
+            _State = new Dictionary<DependencyTarget, DependencyTargetState>(targets.Length);
             Prepare(targets);
         }
 
-        public int Count
-        {
-            get
-            {
-                return _Targets.Length;
-            }
-        }
+        public int Count => _Targets.Length;
 
         public enum DependencyTargetState
         {
@@ -45,28 +41,23 @@ namespace PSRule.Host
             public readonly DependencyGraph<T> Graph;
             public readonly T Value;
 
-            private DependencyTargetState State;
-
             public DependencyTarget(DependencyGraph<T> graph, T value)
             {
                 Graph = graph;
                 Value = value;
             }
 
-            public bool Skipped
+            private DependencyTargetState State
             {
-                get { return State == DependencyTargetState.DependencyFail; }
+                get => Graph._State.TryGetValue(this, out DependencyTargetState state) ? state : DependencyTargetState.None;
+                set => Graph._State[this] = value;
             }
 
-            public bool Failed
-            {
-                get { return State == DependencyTargetState.Fail || State == DependencyTargetState.DependencyFail; }
-            }
+            public bool Skipped => State == DependencyTargetState.DependencyFail;
 
-            public bool Passed
-            {
-                get { return State == DependencyTargetState.Pass; }
-            }
+            public bool Failed => State == DependencyTargetState.Fail || State == DependencyTargetState.DependencyFail;
+
+            public bool Passed => State == DependencyTargetState.Pass;
 
             public void Pass()
             {
@@ -86,6 +77,7 @@ namespace PSRule.Host
 
         public IEnumerable<DependencyTarget> GetSingleTarget()
         {
+            _State.Clear();
             for (var t = 0; t < _Targets.Length; t++)
             {
                 var target = _Targets[t];
@@ -124,7 +116,7 @@ namespace PSRule.Host
 
         #region IDisposable
 
-        void Dispose(bool disposing)
+        private void Dispose(bool disposing)
         {
             if (!_Disposed)
             {

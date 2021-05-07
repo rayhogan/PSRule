@@ -16,17 +16,18 @@ Pass or fail objects against matching rules.
 ### Input (Default)
 
 ```text
-Test-PSRuleTarget [-Module <String[]>] [-Outcome <RuleOutcome>] [-Format <InputFormat>] [[-Path] <String[]>]
- [-Name <String[]>] [-Tag <Hashtable>] -InputObject <PSObject> [-Option <PSRuleOption>] [-ObjectPath <String>]
- [-TargetType <String[]>] [-Culture <String>] [<CommonParameters>]
+Test-PSRuleTarget [-Module <String[]>] [-Outcome <RuleOutcome>] [-Format <InputFormat>]
+ [-Convention <String[]>] [[-Path] <String[]>] [-Name <String[]>] [-Tag <Hashtable>] -InputObject <PSObject>
+ [-Option <PSRuleOption>] [-ObjectPath <String>] [-TargetType <String[]>] [-Culture <String>]
+ [<CommonParameters>]
 ```
 
 ### InputPath
 
 ```text
 Test-PSRuleTarget -InputPath <String[]> [-Module <String[]>] [-Outcome <RuleOutcome>] [-Format <InputFormat>]
- [[-Path] <String[]>] [-Name <String[]>] [-Tag <Hashtable>] [-Option <PSRuleOption>] [-ObjectPath <String>]
- [-TargetType <String[]>] [-Culture <String>] [<CommonParameters>]
+ [-Convention <String[]>] [[-Path] <String[]>] [-Name <String[]>] [-Tag <Hashtable>] [-Option <PSRuleOption>]
+ [-ObjectPath <String>] [-TargetType <String[]>] [-Culture <String>] [<CommonParameters>]
 ```
 
 ## DESCRIPTION
@@ -181,6 +182,11 @@ When the `-InputPath` parameter is used with a file path or URL.
 If the `Detect` format is used, the file extension will be used to automatically detect the format.
 When `-InputPath` is not used, `Detect` is the same as `None`.
 
+When this option is set to `File` PSRule scans the path and subdirectories specified by `-InputPath`.
+Files are treated as objects instead of being deserialized.
+Additional, PSRule uses the file extension as the object type.
+When files have no extension the whole file name is used.
+
 See `about_PSRule_Options` for details.
 
 This parameter takes precedence over the `Input.Format` option if set.
@@ -194,6 +200,43 @@ Accepted values: None, Yaml, Json, Markdown, PowerShellData, Repository, Detect
 Required: False
 Position: Named
 Default value: Detect
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Convention
+
+Specifies conventions by name to execute in the pipeline when processing objects.
+
+```yaml
+Type: String[]
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
+Accept pipeline input: False
+Accept wildcard characters: False
+```
+
+### -Culture
+
+Specifies the culture to use for rule documentation and messages.
+By default, the culture of PowerShell is used.
+
+This option does not affect the culture used for the PSRule engine, which always uses the culture of PowerShell.
+
+The PowerShell cmdlet `Get-Culture` shows the current culture of PowerShell.
+
+```yaml
+Type: String
+Parameter Sets: (All)
+Aliases:
+
+Required: False
+Position: Named
+Default value: None
 Accept pipeline input: False
 Accept wildcard characters: False
 ```
@@ -271,26 +314,6 @@ Parameter Sets: InputPath
 Aliases: f
 
 Required: True
-Position: Named
-Default value: None
-Accept pipeline input: False
-Accept wildcard characters: False
-```
-
-### -Culture
-
-Specifies the culture to use for rule documentation and messages. By default, the culture of PowerShell is used.
-
-This option does not affect the culture used for the PSRule engine, which always uses the culture of PowerShell.
-
-The PowerShell cmdlet `Get-Culture` shows the current culture of PowerShell.
-
-```yaml
-Type: String
-Parameter Sets: (All)
-Aliases:
-
-Required: False
 Position: Named
 Default value: None
 Accept pipeline input: False

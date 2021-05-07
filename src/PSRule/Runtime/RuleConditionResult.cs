@@ -1,7 +1,6 @@
 ﻿// Copyright (c) Microsoft Corporation.
 // Licensed under the MIT License.
 
-using PSRule.Pipeline;
 using System.Collections.Generic;
 using System.Management.Automation;
 
@@ -63,7 +62,7 @@ namespace PSRule.Runtime
             result = assert.Result;
 
             // Complete results
-            if (PipelineContext.CurrentThread.ExecutionScope == ExecutionScope.Condition)
+            if (RunspaceContext.CurrentThread.IsScope(RunspaceScope.Rule))
                 assert.Complete();
 
             return true;

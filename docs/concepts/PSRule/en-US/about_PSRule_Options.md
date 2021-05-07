@@ -13,10 +13,12 @@ This topic describes what options are available, when to and how to use them.
 
 The following workspace options are available for use:
 
+- [Convention.Include](#conventioninclude)
 - [Execution.LanguageMode](#executionlanguagemode)
 - [Execution.InconclusiveWarning](#executioninconclusivewarning)
 - [Execution.NotProcessedWarning](#executionnotprocessedwarning)
 - [Input.Format](#inputformat)
+- [Input.IgnoreGitPath](#inputignoregitpath)
 - [Input.ObjectPath](#inputobjectpath)
 - [Input.PathIgnore](#inputpathignore)
 - [Input.TargetType](#inputtargettype)
@@ -39,6 +41,7 @@ Additionally the following baseline options can be included:
 - [Binding.Field](#bindingfield)
 - [Binding.IgnoreCase](#bindingignorecase)
 - [Binding.NameSeparator](#bindingnameseparator)
+- [Binding.PreferTargetInfo](#bindingprefertargetinfo)
 - [Binding.TargetName](#bindingtargetname)
 - [Binding.TargetType](#bindingtargettype)
 - [Binding.UseQualifiedName](#bindingusequalifiedname)
@@ -116,7 +119,30 @@ If more than one of these files exist, the following order will be used to find 
 - `psrule.yml`
 
 We recommend only using lowercase characters as shown above.
-This is because not all operation systems treat case in the same way.
+This is because not all operating systems treat case in the same way.
+
+Most options can be set using environment variables.
+When configuring environment variables we recommend that all capital letters are used.
+This is because environment variables are case-sensitive on some operating systems.
+
+PSRule environment variables use a consistent naming pattern of `PSRULE_<PARENT>_<NAME>`.
+Where `<PARENT>` is the parent class and `<NAME>` is the specific option.
+For example:
+
+- `Execution.InconclusiveWarning` is configured by `PSRULE_EXECUTION_INCONCLUSIVEWARNING`.
+- `Input.TargetType` is configured by `PSRULE_INPUT_TARGETTYPE`.
+- `Output.Format` is configured by `PSRULE_OUTPUT_FORMAT`.
+
+When setting environment variables:
+
+- Enum values are set by string.
+For example `PSRULE_OUTPUT_FORMAT` could be set to `Yaml`.
+Enum values are case-insensitive.
+- Boolean values are set by `true`, `false`, `1`, or `0`.
+For example `PSRULE_EXECUTION_INCONCLUSIVEWARNING` could be set to `false`.
+Boolean values are case-insensitive.
+- String array values can specify multiple items by using a semi-colon separator.
+For example `PSRULE_INPUT_TARGETTYPE` could be set to `virtualMachine;virtualNetwork`.
 
 ### Binding.Field
 
@@ -195,6 +221,24 @@ binding:
   ignoreCase: false
 ```
 
+```bash
+# Bash: Using environment variable
+export PSRULE_BINDING_IGNORECASE=false
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_BINDING_IGNORECASE: false
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_BINDING_IGNORECASE
+  value: false
+```
+
 ### Binding.NameSeparator
 
 When an object is passed from the pipeline, PSRule assigns the object a _TargetName_.
@@ -230,6 +274,75 @@ Set-PSRuleOption -BindingNameSeparator '::';
 # YAML: Using the binding/nameSeparator property
 binding:
   nameSeparator: '::'
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_BINDING_NAMESEPARATOR='::'
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_BINDING_NAMESEPARATOR: '::'
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_BINDING_NAMESEPARATOR
+  value: '::'
+```
+
+### Binding.PreferTargetInfo
+
+Some built-in objects within PSRule perform automatic binding of TargetName and TargetType.
+These built-in objects provide their own target info.
+
+When binding has been configured these values override automatic binding by default.
+This can occur when the built-in object uses one of the fields specified by the custom configuration.
+The common occurrences of this are on fields such as `Name` and `FullName` which are widely used.
+To prefer automatic binding when specified set this option to `$True`.
+
+This option can be specified using:
+
+```powershell
+# PowerShell: Using the BindingPreferTargetInfo parameter
+$option = New-PSRuleOption -BindingPreferTargetInfo $True;
+```
+
+```powershell
+# PowerShell: Using the Binding.PreferTargetInfo hashtable key
+$option = New-PSRuleOption -Option @{ 'Binding.PreferTargetInfo' = $True };
+```
+
+```powershell
+# PowerShell: Using the BindingPreferTargetInfo parameter to set YAML
+Set-PSRuleOption -BindingPreferTargetInfo $True;
+```
+
+```yaml
+# YAML: Using the binding/preferTargetInfo property
+binding:
+  preferTargetInfo: true
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_BINDING_PREFERTARGETINFO=false
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_BINDING_PREFERTARGETINFO: false
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_BINDING_PREFERTARGETINFO
+  value: false
 ```
 
 ### Binding.TargetName
@@ -278,6 +391,24 @@ binding:
   targetName:
   - ResourceName
   - AlternateName
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_BINDING_TARGETNAME='ResourceName;AlternateName'
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_BINDING_TARGETNAME: 'ResourceName;AlternateName'
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_BINDING_TARGETNAME
+  value: 'ResourceName;AlternateName'
 ```
 
 To specify a custom binding function use:
@@ -341,6 +472,24 @@ binding:
   - kind
 ```
 
+```bash
+# Bash: Using environment variable
+export PSRULE_BINDING_TARGETTYPE='ResourceType;kind'
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_BINDING_TARGETTYPE: 'ResourceType;kind'
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_BINDING_TARGETTYPE
+  value: 'ResourceType;kind'
+```
+
 To specify a custom binding function use:
 
 ```powershell
@@ -398,21 +547,109 @@ binding:
   useQualifiedName: true
 ```
 
+```bash
+# Bash: Using environment variable
+export PSRULE_BINDING_USEQUALIFIEDNAME=false
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_BINDING_USEQUALIFIEDNAME: false
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_BINDING_USEQUALIFIEDNAME
+  value: false
+```
+
 ### Configuration
 
-Configures a set of baseline configuration values that can be used in rule definitions instead of using hard coded values.
+Configures a set of baseline configuration values that can be used in rule definitions.
+Configuration values can be overridden at different scopes.
 
 This option can be specified using:
 
 ```powershell
 # PowerShell: Using the BaselineConfiguration option with a hashtable
-$option = New-PSRuleOption -BaselineConfiguration @{ appServiceMinInstanceCount = 2 };
+$option = New-PSRuleOption -BaselineConfiguration @{ LOCAL_APPSERVICEMININSTANCECOUNT = 2 };
 ```
 
 ```yaml
 # YAML: Using the configuration property
 configuration:
-  appServiceMinInstanceCount: 2
+  LOCAL_APPSERVICEMININSTANCECOUNT: 2
+```
+
+Configuration values can be specified using environment variables.
+To specify a configuration value, prefix the configuration value with `PSRULE_CONFIGURATION_`.
+
+```bash
+# Bash: Using environment variable
+export PSRULE_CONFIGURATION_LOCAL_APPSERVICEMININSTANCECOUNT=2
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_CONFIGURATION_LOCAL_APPSERVICEMININSTANCECOUNT: '2'
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_CONFIGURATION_LOCAL_APPSERVICEMININSTANCECOUNT
+  value: '2'
+```
+
+### Convention.Include
+
+Specifies conventions to execute when the pipeline run.
+Conventions are included by name and must be defined within files included in `-Path` or `-Module`.
+
+This option can be specified using:
+
+```powershell
+# PowerShell: Using the Convention parameter
+$option = New-PSRuleOption -Convention 'Convention1', 'Convention2';
+```
+
+```powershell
+# PowerShell: Using the Convention.Include hashtable key
+$option = New-PSRuleOption -Option @{ 'Convention.Include' = $True };
+```
+
+```powershell
+# PowerShell: Using the Convention parameter to set YAML
+Set-PSRuleOption -Convention 'Convention1', 'Convention2';
+```
+
+```yaml
+# YAML: Using the convention/include property
+convention:
+  include:
+  - 'Convention1'
+  - 'Convention2'
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_CONVENTION_INCLUDE='Convention1;Convention2'
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_CONVENTION_INCLUDE: 'Convention1;Convention2'
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_CONVENTION_INCLUDE
+  value: 'Convention1;Convention2'
 ```
 
 ### Execution.LanguageMode
@@ -438,6 +675,24 @@ $option = New-PSRuleOption -Option @{ 'Execution.LanguageMode' = 'ConstrainedLan
 # YAML: Using the execution/languageMode property
 execution:
   languageMode: ConstrainedLanguage
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_EXECUTION_LANGUAGEMODE=ConstrainedLanguage
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_EXECUTION_LANGUAGEMODE: ConstrainedLanguage
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_EXECUTION_LANGUAGEMODE
+  value: ConstrainedLanguage
 ```
 
 ### Execution.InconclusiveWarning
@@ -478,6 +733,24 @@ execution:
   inconclusiveWarning: false
 ```
 
+```bash
+# Bash: Using environment variable
+export PSRULE_EXECUTION_INCONCLUSIVEWARNING=false
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_EXECUTION_INCONCLUSIVEWARNING: false
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_EXECUTION_INCONCLUSIVEWARNING
+  value: false
+```
+
 ### Execution.NotProcessedWarning
 
 When evaluating rules, it is possible to incorrectly select a path with rules that use pre-conditions that do not accept the pipeline object.
@@ -509,6 +782,24 @@ Set-PSRuleOption -NotProcessedWarning $False;
 # YAML: Using the execution/notProcessedWarning property
 execution:
   notProcessedWarning: false
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_EXECUTION_NOTPROCESSEDWARNING=false
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_EXECUTION_NOTPROCESSEDWARNING: false
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_EXECUTION_NOTPROCESSEDWARNING
+  value: false
 ```
 
 ### Input.Format
@@ -543,9 +834,12 @@ The `Markdown` format does not parse the whole markdown document.
 Specifically this format deserializes YAML front matter from the top of the document if any exists.
 
 The `File` format does not deserialize file contents.
+Each file is returned as an object.
 Files within `.git` sub-directories are ignored.
 Path specs specified in `.gitignore` directly in the current working path are ignored.
 A `RepositoryInfo` object is generated if the current working path if a `.git` sub-directory is present.
+Additionally, PSRule performs automatic type binding for file objects, using the extension as the type.
+When files have no extension the whole file name is used.
 
 Detect uses the following file extensions:
 
@@ -575,6 +869,71 @@ Set-PSRuleOption -Format Yaml;
 # YAML: Using the input/format property
 input:
   format: Yaml
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_INPUT_FORMAT=Yaml
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_INPUT_FORMAT: Yaml
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_INPUT_FORMAT
+  value: Yaml
+```
+
+### Input.IgnoreGitPath
+
+When reading files from an input path, files within the `.git` sub-directory are ignored by default.
+Files stored within the `.git` sub-directory are system repository files used by git.
+To read files stored within the `.git` path, set this option to `$False`.
+
+This option can be specified using:
+
+```powershell
+# PowerShell: Using the InputIgnoreGitPath parameter
+$option = New-PSRuleOption -InputIgnoreGitPath $False;
+```
+
+```powershell
+# PowerShell: Using the Input.IgnoreGitPath hashtable key
+$option = New-PSRuleOption -Option @{ 'Input.IgnoreGitPath' = $False };
+```
+
+```powershell
+# PowerShell: Using the InputIgnoreGitPath parameter to set YAML
+Set-PSRuleOption -InputIgnoreGitPath $False;
+```
+
+```yaml
+# YAML: Using the input/ignoreGitPath property
+input:
+  ignoreGitPath: false
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_INPUT_IGNOREGITPATH=false
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_INPUT_IGNOREGITPATH: false
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_INPUT_IGNOREGITPATH
+  value: false
 ```
 
 ### Input.ObjectPath
@@ -612,6 +971,24 @@ input:
   objectPath: items
 ```
 
+```bash
+# Bash: Using environment variable
+export PSRULE_INPUT_OBJECTPATH=items
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_INPUT_OBJECTPATH: items
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_INPUT_OBJECTPATH
+  value: items
+```
+
 ### Input.PathIgnore
 
 Ignores input files that match the path spec when using `-InputPath`.
@@ -642,6 +1019,24 @@ input:
   - '*.Designer.cs'
 ```
 
+```bash
+# Bash: Using environment variable
+export PSRULE_INPUT_PATHIGNORE=*.Designer.cs
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_INPUT_PATHIGNORE: '*.Designer.cs'
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_INPUT_PATHIGNORE
+  value: '*.Designer.cs'
+```
+
 ### Input.TargetType
 
 Filters input objects by TargetType.
@@ -660,17 +1055,17 @@ This option can be specified using:
 
 ```powershell
 # PowerShell: Using the InputTargetType parameter
-$option = New-PSRuleOption -InputTargetType 'virtualMachine';
+$option = New-PSRuleOption -InputTargetType 'virtualMachine', 'virtualNetwork';
 ```
 
 ```powershell
 # PowerShell: Using the Input.TargetType hashtable key
-$option = New-PSRuleOption -Option @{ 'Input.TargetType' = 'virtualMachine' };
+$option = New-PSRuleOption -Option @{ 'Input.TargetType' = 'virtualMachine', 'virtualNetwork' };
 ```
 
 ```powershell
 # PowerShell: Using the InputTargetType parameter to set YAML
-Set-PSRuleOption -InputTargetType 'virtualMachine';
+Set-PSRuleOption -InputTargetType 'virtualMachine', 'virtualNetwork';
 ```
 
 ```yaml
@@ -678,6 +1073,24 @@ Set-PSRuleOption -InputTargetType 'virtualMachine';
 input:
   targetType:
   - virtualMachine
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_INPUT_TARGETTYPE=virtualMachine;virtualNetwork
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_INPUT_TARGETTYPE: virtualMachine;virtualNetwork
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_INPUT_TARGETTYPE
+  value: virtualMachine;virtualNetwork
 ```
 
 ### Logging.LimitDebug
@@ -842,14 +1255,14 @@ logging:
 
 Configures the type of results to produce.
 
-This option only applies to `Invoke-PSRule`.
-`Invoke-PSRule` also include a `-As` parameter to set this option at runtime.
+This option only applies to `Invoke-PSRule` and `Assert-PSRule`.
+`Invoke-PSRule` and `Assert-PSRule` also include a `-As` parameter to set this option at runtime.
 If specified, the `-As` parameter take precedence, over this option.
 
 The following options are available:
 
 - Detail - Return a record per rule per object.
-- Summary - Return summary information for per rule.
+- Summary - Return summary results.
 
 This option can be specified using:
 
@@ -872,6 +1285,24 @@ Set-PSRuleOption -OutputAs Summary;
 # YAML: Using the output/as property
 output:
   as: Summary
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_OUTPUT_AS=Summary
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_OUTPUT_AS: Summary
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_OUTPUT_AS
+  value: Summary
 ```
 
 ### Output.Culture
@@ -906,6 +1337,24 @@ Set-PSRuleOption -OutputCulture 'en-AU', 'en-US';
 # YAML: Using the output/culture property
 output:
   culture: [ 'en-AU', 'en-US' ]
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_OUTPUT_CULTURE=en-AU;en-US
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_OUTPUT_CULTURE: en-AU;en-US
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_OUTPUT_CULTURE
+  value: en-AU;en-US
 ```
 
 ### Output.Encoding
@@ -943,6 +1392,24 @@ Set-PSRuleOption -OutputEncoding UTF8;
 # YAML: Using the output/encoding property
 output:
   encoding: UTF8
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_OUTPUT_ENCODING=UTF8
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_OUTPUT_ENCODING: UTF8
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_OUTPUT_ENCODING
+  value: UTF8
 ```
 
 ### Output.Format
@@ -991,11 +1458,27 @@ output:
   format: Yaml
 ```
 
+```bash
+# Bash: Using environment variable
+export PSRULE_OUTPUT_FORMAT=Yaml
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_OUTPUT_FORMAT: Yaml
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_OUTPUT_FORMAT
+  value: Yaml
+```
+
 ### Output.Outcome
 
 Filters output to include results with the specified outcome.
-This option applies to `Invoke-PSRule`, and `Test-PSRule`.
-
 The following outcome options are available:
 
 - `None` - Results for rules that did not get processed are returned.
@@ -1005,9 +1488,6 @@ The following outcome options are available:
 - `Processed` - Results for rules that either passed, failed, or raised an error are returned.
 This is the default option.
 - `All` - All results for rules are returned.
-
-This option is ignored by `Assert-PSRule`.
-`Assert-PSRule` will always use `Processed`.
 
 This option can be specified using:
 
@@ -1030,6 +1510,24 @@ Set-PSRuleOption -OutputOutcome Fail;
 # YAML: Using the output/outcome property
 output:
   outcome: 'Fail'
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_OUTPUT_OUTCOME=Fail
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_OUTPUT_OUTCOME: Fail
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_OUTPUT_OUTCOME
+  value: Fail
 ```
 
 ### Output.Path
@@ -1062,6 +1560,24 @@ Set-PSRuleOption -OutputPath 'out/results.yaml';
 # YAML: Using the output/path property
 output:
   path: 'out/results.yaml'
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_OUTPUT_PATH=out/results.yaml
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_OUTPUT_PATH: out/results.yaml
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_OUTPUT_PATH
+  value: out/results.yaml
 ```
 
 ### Output.Style
@@ -1102,6 +1618,24 @@ output:
   style: AzurePipelines
 ```
 
+```bash
+# Bash: Using environment variable
+export PSRULE_OUTPUT_STYLE=AzurePipelines
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_OUTPUT_STYLE: AzurePipelines
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_OUTPUT_STYLE
+  value: AzurePipelines
+```
+
 ### Requires
 
 Specifies module version constraints for running PSRule.
@@ -1118,14 +1652,40 @@ This option can be specified using:
 
 ```powershell
 # PowerShell: Using the Requires.module hashtable key
-$option = New-PSRuleOption -Option @{ 'Requires.PSRule' = '>=0.18.0' };
+$option = New-PSRuleOption -Option @{ 'Requires.PSRule' = '>=1.0.0' };
 ```
 
 ```yaml
 # YAML: Using the requires property
 requires:
-  PSRule: '>=0.18.0'              # Require v0.18.0 or greater.
-  PSRule.Rules.Azure: '>=0.13.0'  # Require v0.13.0 or greater.
+  PSRule: '>=1.0.0'              # Require v1.0.0 or greater.
+  PSRule.Rules.Azure: '>=1.0.0'  # Require v1.0.0 or greater.
+```
+
+This option can be configured using environment variables.
+To specify a module version constraint, prefix the module name with `PSRULE_REQUIRES_`.
+When the module name includes a dot (`.`) use an underscore (`_`) instead.
+
+```bash
+# Bash: Using environment variable
+export PSRULE_REQUIRES_PSRULE='>=1.0.0'
+export PSRULE_REQUIRES_PSRULE_RULES_AZURE='>=1.0.0'
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_REQUIRES_PSRULE: '>=1.0.0'
+  PSRULE_REQUIRES_PSRULE_RULES_AZURE: '>=1.0.0'
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_REQUIRES_PSRULE
+  value: '>=1.0.0'
+- name: PSRULE_REQUIRES_PSRULE_RULES_AZURE
+  value: '>=1.0.0'
 ```
 
 ### Rule.Include
@@ -1146,8 +1706,26 @@ $option = New-PSRuleOption -Option @{ 'Rule.Include' = 'Rule1','Rule2' };
 # YAML: Using the rule/include property
 rule:
   include:
-  - rule1
-  - rule2
+  - Rule1
+  - Rule2
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_RULE_INCLUDE='Rule1;Rule2'
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_RULE_INCLUDE: 'Rule1;Rule2'
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_RULE_INCLUDE
+  value: 'Rule1;Rule2'
 ```
 
 ### Rule.Exclude
@@ -1166,8 +1744,26 @@ $option = New-PSRuleOption -Option @{ 'Rule.Exclude' = 'Rule3','Rule4' };
 # YAML: Using the rule/exclude property
 rule:
   exclude:
-  - rule3
-  - rule4
+  - Rule3
+  - Rule4
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_RULE_EXCLUDE='Rule3;Rule4'
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_RULE_EXCLUDE: 'Rule3;Rule4'
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_RULE_EXCLUDE
+  value: 'Rule3;Rule4'
 ```
 
 ### Rule.Tag
@@ -1274,7 +1870,12 @@ Rule 'isFruit' -If { $TargetObject.Category -eq 'Produce' } {
 
 # Configure required module versions
 requires:
-  PSRule.Rules.Azure: '>=0.13.0'
+  PSRule.Rules.Azure: '>=1.1.0'
+
+# Configure convention options
+convention:
+  include:
+  - 'Convention1'
 
 # Configure execution options
 execution:
@@ -1285,6 +1886,7 @@ execution:
 # Configures input options
 input:
   format: Yaml
+  ignoreGitPath: false
   objectPath: items
   pathIgnore:
   - '*.Designer.cs'
@@ -1327,6 +1929,7 @@ binding:
     - AlternativeId
   ignoreCase: false
   nameSeparator: '::'
+  preferTargetInfo: true
   targetName:
   - ResourceName
   - AlternateName
@@ -1363,6 +1966,10 @@ rule:
 # Configure required module versions
 requires: { }
 
+# Configure convention options
+convention:
+  include: [ ]
+
 # Configure execution options
 execution:
   languageMode: FullLanguage
@@ -1372,6 +1979,7 @@ execution:
 # Configures input options
 input:
   format: Detect
+  ignoreGitPath: true
   objectPath: null
   pathIgnore: [ ]
   targetType: [ ]
@@ -1399,6 +2007,7 @@ binding:
   field: { }
   ignoreCase: true
   nameSeparator: '/'
+  preferTargetInfo: false
   targetName:
   - TargetName
   - Name
@@ -1428,5 +2037,7 @@ An online version of this document is available at https://github.com/Microsoft/
 
 - Options
 - PSRule
+- TargetInfo
+- Binding
 
 [about_PSRule_Assert]: about_PSRule_Assert.md

@@ -16,6 +16,7 @@ The following baseline options can be configured:
 - [Binding.Field](about_PSRule_Options.md#bindingfield)
 - [Binding.IgnoreCase](about_PSRule_Options.md#bindingignorecase)
 - [Binding.NameSeparator](about_PSRule_Options.md#bindingnameseparator)
+- [Binding.PreferTargetInfo](about_PSRule_Options.md#bindingprefertargetinfo)
 - [Binding.TargetName](about_PSRule_Options.md#bindingtargetname)
 - [Binding.TargetType](about_PSRule_Options.md#bindingtargettype)
 - [Binding.UseQualifiedName](about_PSRule_Options.md#bindingusequalifiedname)
@@ -42,6 +43,7 @@ To define a baseline spec use the following structure:
 ```yaml
 ---
 # Synopsis: <synopsis>
+apiVersion: github.com/microsoft/PSRule/v1
 kind: Baseline
 metadata:
   name: <name>
@@ -58,6 +60,7 @@ For example:
 ```yaml
 ---
 # Synopsis: This is an example baseline
+apiVersion: github.com/microsoft/PSRule/v1
 kind: Baseline
 metadata:
   name: Baseline1
@@ -83,6 +86,7 @@ spec:
 
 ---
 # Synopsis: This is an example baseline
+apiVersion: github.com/microsoft/PSRule/v1
 kind: Baseline
 metadata:
   name: Baseline2
@@ -129,6 +133,7 @@ For example:
 ```yaml
 ---
 # Synopsis: This is an example baseline that is obsolete
+apiVersion: github.com/microsoft/PSRule/v1
 kind: Baseline
 metadata:
   name: ObsoleteBaseline
@@ -142,8 +147,11 @@ spec: { }
 ### Example Baseline.Rule.yaml
 
 ```yaml
+# Example Baseline.Rule.yaml
+
 ---
 # Synopsis: This is an example baseline
+apiVersion: github.com/microsoft/PSRule/v1
 kind: Baseline
 metadata:
   name: TestBaseline1
@@ -161,6 +169,7 @@ spec:
 
 ---
 # Synopsis: This is an example baseline
+apiVersion: github.com/microsoft/PSRule/v1
 kind: Baseline
 metadata:
   name: TestBaseline2
@@ -176,3 +185,10 @@ spec:
   configuration:
     key1: value1
 ```
+
+## KEYWORDS
+
+- Options
+- PSRule
+- Baseline
+- Binding

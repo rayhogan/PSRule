@@ -27,17 +27,29 @@ The following built-in assertion methods are provided:
 - [HasFieldValue](#hasfieldvalue) - The object must have the specified field and that field is not empty.
 - [HasJsonSchema](#hasjsonschema) - The object must reference a JSON schema with the `$schema` field.
 - [In](#in) - The field value must be included in the set.
+- [IsArray](#isarray) - The field value must be an array.
+- [IsBoolean](#isboolean) - The field value must be a boolean.
+- [IsDateTime](#isdatetime) - The field value must be a DateTime.
+- [IsInteger](#isinteger) - The field value must be an integer.
 - [IsLower](#islower) - The field value must include only lowercase characters.
+- [IsNumeric](#isnumeric) - The field value must be a numeric type.
+- [IsString](#isstring) - The field value must be a string.
 - [IsUpper](#isupper) - The field value must include only uppercase characters.
 - [JsonSchema](#jsonschema) - The object must validate successfully against a JSON schema.
 - [Less](#less) - The field value must be less.
 - [LessOrEqual](#lessorequal) - The field value must be less or equal to.
 - [Match](#match) - The field value matches a regular expression pattern.
+- [NotHasField](#nothasfield) - The object must not have any of the specified fields.
 - [NotIn](#notin) - The field value must not be included in the set.
 - [NotMatch](#notmatch) - The field value does not match a regular expression pattern.
+- [NotNull](#notnull) - The field value must not be null.
+- [NotWithinPath](#notwithinpath) - The field must not be within the specified path.
+- [Null](#null) - The field value must not exist or be null.
 - [NullOrEmpty](#nullorempty) - The object must not have the specified field or it must be empty.
+- [TypeOf](#typeof) - The field value must be of the specified type.
 - [StartsWith](#startswith) - The field value must match at least one prefix.
 - [Version](#version) - The field value must be a semantic version string.
+- [WithinPath](#withinpath) - The field value must be within the specified path.
 
 The `$Assert` variable can only be used within a rule definition block or script pre-conditions.
 
@@ -95,7 +107,7 @@ For example:
 
 ### Contains
 
-The `Contains` assertion method checks the field value contains with the specified string.
+The `Contains` assertion method checks the field value contains the specified string.
 Optionally a case-sensitive compare can be used, however case is ignored by default.
 
 The following parameters are accepted:
@@ -178,9 +190,14 @@ When set, detection by file extension is skipped.
 
 Prefix detection for line comments is supported with the following file extensions:
 
-- `.cs`, `.ts`, `.js`, `.fs`, `.go`, `.php`, `.cpp`, `.h` - Use a prefix of (`// `).
-- `.ps1`, `.psd1`, `.psm1`, `.yaml`, `.yml`, `.r`, `.py`, `.sh`, `.tf`, `.tfvars`, `.gitignore`, `.pl` - Use a prefix of (`# `).
+- `.bicep`, `.cs`, `.csx` `.ts`, `.js`, `.jsx`,
+`.fs`, `.go`, `.groovy`, `.php`, `.cpp`, `.h`,
+`.java`, `.json`, `.jsonc`, `.scala`, `Jenkinsfile` - Use a prefix of (`// `).
+- `.ps1`, `.psd1`, `.psm1`, `.yaml`, `.yml`,
+`.r`, `.py`, `.sh`, `.tf`, `.tfvars`, `.gitignore`,
+`.pl`, `.rb`, `Dockerfile` - Use a prefix of (`# `).
 - `.sql`, `.lau` - Use a prefix of (`-- `).
+- `.bat`, `.cmd` - Use a prefix of (`:: `).
 
 Reasons include:
 
@@ -205,7 +222,7 @@ Rule 'FileHeader' {
 ### FilePath
 
 The `FilePath` assertion method checks the file exists.
-Checks use OS case-sensitivity rules.
+Checks use file system case-sensitivity rules.
 
 The following parameters are accepted:
 
@@ -247,6 +264,7 @@ When the field value is:
 - An integer or float, a numerical comparison is used.
 - An array, the number of elements is compared.
 - A string, the length of the string is compared.
+- A DateTime, the number of days from the current time is compared.
 
 The following parameters are accepted:
 
@@ -281,6 +299,7 @@ When the field value is:
 - An integer or float, a numerical comparison is used.
 - An array, the number of elements is compared.
 - A string, the length of the string is compared.
+- A DateTime, the number of days from the current time is compared.
 
 The following parameters are accepted:
 
@@ -436,12 +455,16 @@ Rule 'HasFieldValue' {
 
 The `HasJsonSchema` assertion method determines if the input object has a `$schema` property defined.
 If the `$schema` property is defined, it must match one of the supplied schemas.
+If a trailing `#` is specified it is ignored from the `$schema` property and `uri` parameter below.
 
 The following parameters are accepted:
 
 - `inputObject` - The object being compared.
 - `uri` - Optional.
 When specified, the object being compared must have a `$schema` property set to one of the specified schemas.
+- `ignoreScheme` - Optional.
+By default, `ignoreScheme` is `$False`.
+When `$True`, the schema will match if `http` or `https` is specified.
 
 Reasons include:
 
@@ -456,6 +479,7 @@ Examples:
 Rule 'HasFieldValue' {
     $Assert.HasJsonSchema($TargetObject)
     $Assert.HasJsonSchema($TargetObject, "http://json-schema.org/draft-07/schema`#")
+    $Assert.HasJsonSchema($TargetObject, "https://json-schema.org/draft-07/schema", $True)
 }
 ```
 
@@ -515,6 +539,130 @@ Rule 'In' {
 }
 ```
 
+### IsArray
+
+The `IsArray` assertion method checks the field value is an array type.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field to check.
+This is a case insensitive compare.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The field '{0}' does not exist._
+- _The field value '{0}' is null._
+- _The field value '{1}' of type {0} is not \[array\]._
+
+Examples:
+
+```powershell
+Rule 'IsArray' {
+    # Require Value1 to be an array
+    $Assert.IsArray($TargetObject, 'Value1')
+}
+```
+
+### IsBoolean
+
+The `IsBoolean` assertion method checks the field value is a boolean type.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field to check.
+This is a case insensitive compare.
+- `convert` (optional) - Try to convert strings.
+By default strings are not converted.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The field '{0}' does not exist._
+- _The field value '{0}' is null._
+- _The field value '{1}' of type {0} is not \[bool\]._
+
+Examples:
+
+```powershell
+Rule 'IsBoolean' {
+    # Require Value1 to be a boolean
+    $Assert.IsBoolean($TargetObject, 'Value1')
+
+    # Require Value1 to be a boolean or a boolean string
+    $Assert.IsBoolean($TargetObject, 'Value1', $True)
+}
+```
+
+### IsDateTime
+
+The `IsBoolean` assertion method checks the field value is a DateTime type.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field to check.
+This is a case insensitive compare.
+- `convert` (optional) - Try to convert strings.
+By default strings are not converted.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The field '{0}' does not exist._
+- _The field value '{0}' is null._
+- _The field value '{1}' of type {0} is not \[DateTime\]._
+
+Examples:
+
+```powershell
+Rule 'IsBoolean' {
+    # Require Value1 to be a DateTime
+    $Assert.IsDateTime($TargetObject, 'Value1')
+
+    # Require Value1 to be a DateTime or a DateTime string
+    $Assert.IsDateTime($TargetObject, 'Value1', $True)
+}
+```
+
+### IsInteger
+
+The `IsInteger` assertion method checks the field value is a integer type.
+The following types are considered integer types `int`, `long`, `byte`.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field to check.
+This is a case insensitive compare.
+- `convert` (optional) - Try to convert strings.
+By default strings are not converted.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The field '{0}' does not exist._
+- _The field value '{0}' is null._
+- _The field value '{1}' of type {0} is not an integer._
+
+Examples:
+
+```powershell
+Rule 'IsInteger' {
+    # Require Value1 to be an integer
+    $Assert.IsInteger($TargetObject, 'Value1')
+
+    # Require Value1 to be an integer or a integer string
+    $Assert.IsInteger($TargetObject, 'Value1', $True)
+}
+```
+
 ### IsLower
 
 The `IsLower` assertion method checks the field value uses only lowercase characters.
@@ -545,6 +693,66 @@ Rule 'IsLower' {
 
     # Require Name to only contain lowercase letters
     $Assert.IsLower($TargetObject, 'Name', $True)
+}
+```
+
+### IsNumeric
+
+The `IsNumeric` assertion method checks the field value is a numeric type.
+The following types are considered numeric types `int`, `long`, `float`, `byte`, `double`.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field to check.
+This is a case insensitive compare.
+- `convert` (optional) - Try to convert numerical strings.
+By default strings are not converted.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The field '{0}' does not exist._
+- _The field value '{0}' is null._
+- _The field value '{1}' of type {0} is not numeric._
+
+Examples:
+
+```powershell
+Rule 'IsNumeric' {
+    # Require Value1 to be numeric
+    $Assert.IsNumeric($TargetObject, 'Value1')
+
+    # Require Value1 to be numeric or a numerical string
+    $Assert.IsNumeric($TargetObject, 'Value1', $True)
+}
+```
+
+### IsString
+
+The `IsString` assertion method checks the field value is a string type.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field to check.
+This is a case insensitive compare.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The field '{0}' does not exist._
+- _The field value '{0}' is null._
+- _The field value '{1}' of type {0} is not \[string\]._
+
+Examples:
+
+```powershell
+Rule 'IsString' {
+    # Require Value1 to be a string
+    $Assert.IsString($TargetObject, 'Value1')
 }
 ```
 
@@ -590,6 +798,7 @@ When the field value is:
 - An integer or float, a numerical comparison is used.
 - An array, the number of elements is compared.
 - A string, the length of the string is compared.
+- A DateTime, the number of days from the current time is compared.
 
 The following parameters are accepted:
 
@@ -624,14 +833,15 @@ When the field value is:
 - An integer or float, a numerical comparison is used.
 - An array, the number of elements is compared.
 - A string, the length of the string is compared.
-- `convert` (optional) - Convert numerical strings and use a numerical comparison instead of using string length.
-By default the string length is compared.
+- A DateTime, the number of days from the current time is compared.
 
 The following parameters are accepted:
 
 - `inputObject` - The object being checked for the specified field.
 - `field` - The name of the field to check. This is a case insensitive compare.
 - `value` - A integer to compare the field value against.
+- `convert` (optional) - Convert numerical strings and use a numerical comparison instead of using string length.
+By default the string length is compared.
 
 Reasons include:
 
@@ -675,6 +885,34 @@ Examples:
 Rule 'Match' {
     $Assert.Match($TargetObject, 'value', '^[a-z]*$')
     $Assert.Match($TargetObject, 'value', '^[a-z]*$', $True)
+}
+```
+
+### NotHasField
+
+The `NotHasField` assertion method checks the object does not have any of the specified fields.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of one or more fields to check.
+By default, a case insensitive compare is used.
+If more than one field is specified, all must not exist.
+- `caseSensitive` (optional) - Use a case sensitive compare of the field name.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The field '{0}' exists._
+
+Examples:
+
+```powershell
+Rule 'NotHasField' {
+    $Assert.NotHasField($TargetObject, 'Name')
+    $Assert.NotHasField($TargetObject, 'tag.Environment', $True)
+    $Assert.NotHasField($TargetObject, @('tag.Environment', 'tag.Env'), $True)
 }
 ```
 
@@ -741,6 +979,95 @@ Rule 'NotMatch' {
 }
 ```
 
+### NotNull
+
+The `NotNull` assertion method checks the field value of the object is not null.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field to check.
+This is a case insensitive compare.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The field '{0}' does not exist._
+- _The field value '{0}' is null._
+
+Examples:
+
+```powershell
+Rule 'NotNull' {
+    $Assert.NotNull($TargetObject, 'Name')
+    $Assert.NotNull($TargetObject, 'tag.Environment')
+}
+```
+
+### NotWithinPath
+
+The `NotWithinPath` assertion method checks the file is not within a specified path.
+Checks use file system case-sensitivity rules by default.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field containing a file path.
+When the field is `InputFileInfo` or `FileInfo`, PSRule will automatically resolve the file path.
+- `path` - An array of one or more directory paths to check.
+Only one path must match.
+- `caseSensitive` (optional) - Determines if case-sensitive path matching is used.
+This can be set to `$True` or `$False`.
+When not set or `$Null`, the case-sensitivity rules of the working path file system will be used.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The parameter 'path' is null or empty._
+- _The field '{0}' does not exist._
+- _The file '{0}' is within the path '{1}'._
+
+Examples:
+
+```powershell
+Rule 'NotWithinPath' {
+    # The file must not be within either policy/ or security/ sub-directories.
+    $Assert.NotWithinPath($TargetObject, 'FullName', @('policy/', 'security/'));
+}
+```
+
+### Null
+
+The `Null` assertion method checks the field value of the object is null.
+
+A field value is null if any of the following are true:
+
+- The field does not exist.
+- The field value is `$Null`.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field to check.
+This is a case insensitive compare.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The field value '{0}' is not null._
+
+Examples:
+
+```powershell
+Rule 'Null' {
+    $Assert.Null($TargetObject, 'NotField')
+    $Assert.Null($TargetObject, 'tag.NullField')
+}
+```
+
 ### NullOrEmpty
 
 The `NullOrEmpty` assertion method checks the field value of the object is null or empty.
@@ -770,6 +1097,39 @@ Examples:
 Rule 'NullOrEmpty' {
     $Assert.NullOrEmpty($TargetObject, 'Name')
     $Assert.NullOrEmpty($TargetObject, 'tag.Environment')
+}
+```
+
+### TypeOf
+
+The `TypeOf` assertion method checks the field value is a specified type.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field to check.
+This is a case insensitive compare.
+- `type` - One or more specified types to check.
+The field value only has to match a single type of more than one type is specified.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The parameter 'type' is null or empty._
+- _The field '{0}' does not exist._
+- _The field value '{0}' is null._
+- _The field value '{2}' of type {1} is not {0}._
+
+Examples:
+
+```powershell
+Rule 'TypeOf' {
+    # Require Value1 to be [int]
+    $Assert.TypeOf($TargetObject, 'Value1', [int])
+
+    # Require Value1 to be [int] or [long]
+    $Assert.TypeOf($TargetObject, 'Value1', @([int], [long]))
 }
 ```
 
@@ -857,6 +1217,39 @@ Rule 'MinimumVersion' {
 }
 ```
 
+### WithinPath
+
+The `WithinPath` assertion method checks if the file path is within a required path.
+Checks use file system case-sensitivity rules by default.
+
+The following parameters are accepted:
+
+- `inputObject` - The object being checked for the specified field.
+- `field` - The name of the field containing a file path.
+When the field is `InputFileInfo` or `FileInfo`, PSRule will automatically resolve the file path.
+- `path` - An array of one or more directory paths to check.
+Only one path must match.
+- `caseSensitive` (optional) - Determines if case-sensitive path matching is used.
+This can be set to `$True` or `$False`.
+When not set or `$Null`, the case-sensitivity rules of the working path file system will be used.
+
+Reasons include:
+
+- _The parameter 'inputObject' is null._
+- _The parameter 'field' is null or empty._
+- _The parameter 'path' is null or empty._
+- _The field '{0}' does not exist._
+- _The file '{0}' is not within the path '{1}'._
+
+Examples:
+
+```powershell
+Rule 'WithinPath' {
+    # Require the file to be within either policy/ or security/ sub-directories.
+    $Assert.WithinPath($TargetObject, 'FullName', @('policy/', 'security/'));
+}
+```
+
 ### Advanced usage
 
 The `AssertResult` object returned from assertion methods:
@@ -921,7 +1314,8 @@ Rule 'Assert.HasCustomValue' {
 
 The following built-in helper methods are provided for working with `$Assert` when authoring new assertion methods:
 
-- `Create(<bool> condition, <string> reason)` - Returns a result either pass or fail assertion result.
+- `Create(<bool> condition, <string> reason, params <object[]> args)` - Returns a result either pass or fail assertion result.
+Additional arguments can be provided to format the custom reason string.
 - `Pass()` - Returns a pass assertion result.
 - `Fail()` - Results a fail assertion result.
 - `Fail(<string> reason, params <object[]> args)` - Results a fail assertion result with a custom reason.

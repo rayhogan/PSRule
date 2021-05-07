@@ -36,7 +36,8 @@ namespace PSRule.Pipeline
                 return;
 
             var basePath = PSRuleOption.GetWorkingPath();
-            var filter = PathFilterBuilder.Create(basePath, Option.Input.PathIgnore);
+            var ignoreGitPath = Option.Input.IgnoreGitPath ?? InputOption.Default.IgnoreGitPath.Value;
+            var filter = PathFilterBuilder.Create(basePath, Option.Input.PathIgnore, ignoreGitPath);
             if (Option.Input.Format == InputFormat.File)
                 filter.UseGitIgnore();
 
@@ -85,12 +86,12 @@ namespace PSRule.Pipeline
             return this;
         }
 
-        public sealed override IPipeline Build()
+        public override IPipeline Build()
         {
             if (!RequireModules() || !RequireSources())
                 return null;
 
-            return new InvokeRulePipeline(PrepareContext(BindTargetNameHook, BindTargetTypeHook, BindFieldHook), Source, PrepareReader(), PrepareWriter());
+            return new InvokeRulePipeline(PrepareContext(BindTargetNameHook, BindTargetTypeHook, BindFieldHook), Source, PrepareWriter(), Option.Output.Outcome.Value);
         }
 
         protected override PipelineReader PrepareReader()
@@ -168,24 +169,25 @@ namespace PSRule.Pipeline
 
         private readonly ResultFormat _ResultFormat;
         private readonly RuleSuppressionFilter _SuppressionFilter;
+        private readonly List<InvokeResult> _Completed;
 
         // Track whether Dispose has been called.
         private bool _Disposed;
 
-        internal InvokeRulePipeline(PipelineContext context, Source[] source, PipelineReader reader, PipelineWriter writer)
-            : base(context, source, reader, writer)
+        internal InvokeRulePipeline(PipelineContext context, Source[] source, PipelineWriter writer, RuleOutcome outcome)
+            : base(context, source, context.Reader, writer)
         {
             HostHelper.ImportResource(Source, Context);
             _RuleGraph = HostHelper.GetRuleBlockGraph(Source, Context);
             RuleCount = _RuleGraph.Count;
-
             if (RuleCount == 0)
                 Context.WarnRuleNotFound();
 
-            _Outcome = context.Option.Output.Outcome.Value;
+            _Outcome = outcome;
             _Summary = new Dictionary<string, RuleSummaryRecord>();
             _ResultFormat = context.Option.Output.As.Value;
             _SuppressionFilter = new RuleSuppressionFilter(context.Option.Suppression);
+            _Completed = new List<InvokeResult>();
         }
 
         public int RuleCount { get; private set; }
@@ -198,6 +200,7 @@ namespace PSRule.Pipeline
                 while (Reader.TryDequeue(out PSObject next))
                 {
                     var result = ProcessTargetObject(next);
+                    _Completed.Add(result);
                     Writer.WriteObject(result, false);
                 }
             }
@@ -210,6 +213,13 @@ namespace PSRule.Pipeline
 
         public override void End()
         {
+            if (_Completed.Count > 0)
+            {
+                var completed = _Completed.ToArray();
+                _Completed.Clear();
+                Context.End(completed);
+            }
+
             if (_ResultFormat == ResultFormat.Summary)
                 Writer.WriteObject(_Summary.Values.Where(r => _Outcome == RuleOutcome.All || (r.Outcome & _Outcome) > 0).ToArray(), true);
 
@@ -218,60 +228,67 @@ namespace PSRule.Pipeline
 
         private InvokeResult ProcessTargetObject(PSObject targetObject)
         {
-            Context.SetTargetObject(targetObject);
-            var result = new InvokeResult();
-            var ruleCounter = 0;
-
-            // Process rule blocks ordered by dependency graph
-            foreach (var ruleBlockTarget in _RuleGraph.GetSingleTarget())
+            try
             {
-                // Enter rule block scope
-                var ruleRecord = Context.EnterRuleBlock(ruleBlock: ruleBlockTarget.Value);
-                ruleCounter++;
+                Context.EnterTargetObject(targetObject);
+                var result = new InvokeResult();
+                var ruleCounter = 0;
 
-                try
+                // Process rule blocks ordered by dependency graph
+                foreach (var ruleBlockTarget in _RuleGraph.GetSingleTarget())
                 {
-                    if (Pipeline.ShouldFilter())
-                        continue;
+                    // Enter rule block scope
+                    var ruleRecord = Context.EnterRuleBlock(ruleBlock: ruleBlockTarget.Value);
+                    ruleCounter++;
 
-                    // Check if dependency failed
-                    if (ruleBlockTarget.Skipped)
+                    try
                     {
-                        ruleRecord.OutcomeReason = RuleOutcomeReason.DependencyFail;
-                    }
-                    // Check for suppression
-                    else if (_SuppressionFilter.Match(ruleName: ruleRecord.RuleName, targetName: ruleRecord.TargetName))
-                    {
-                        ruleRecord.OutcomeReason = RuleOutcomeReason.Suppressed;
-                    }
-                    else
-                    {
-                        HostHelper.InvokeRuleBlock(context: Context, ruleBlock: ruleBlockTarget.Value, ruleRecord: ruleRecord);
-                        if (ruleRecord.OutcomeReason == RuleOutcomeReason.PreconditionFail)
-                            ruleCounter--;
-                    }
+                        if (Pipeline.ShouldFilter())
+                            continue;
 
-                    // Report outcome to dependency graph
-                    if (ruleRecord.Outcome == RuleOutcome.Pass)
-                        ruleBlockTarget.Pass();
-                    else if (ruleRecord.Outcome == RuleOutcome.Fail || ruleRecord.Outcome == RuleOutcome.Error)
-                        ruleBlockTarget.Fail();
+                        // Check if dependency failed
+                        if (ruleBlockTarget.Skipped)
+                        {
+                            ruleRecord.OutcomeReason = RuleOutcomeReason.DependencyFail;
+                        }
+                        // Check for suppression
+                        else if (_SuppressionFilter.Match(ruleName: ruleRecord.RuleName, targetName: ruleRecord.TargetName))
+                        {
+                            ruleRecord.OutcomeReason = RuleOutcomeReason.Suppressed;
+                        }
+                        else
+                        {
+                            HostHelper.InvokeRuleBlock(context: Context, ruleBlock: ruleBlockTarget.Value, ruleRecord: ruleRecord);
+                            if (ruleRecord.OutcomeReason == RuleOutcomeReason.PreconditionFail)
+                                ruleCounter--;
+                        }
 
-                    AddToSummary(ruleBlock: ruleBlockTarget.Value, outcome: ruleRecord.Outcome);
-                    if (ShouldOutput(ruleRecord.Outcome))
-                        result.Add(ruleRecord);
+                        // Report outcome to dependency graph
+                        if (ruleRecord.Outcome == RuleOutcome.Pass)
+                            ruleBlockTarget.Pass();
+                        else if (ruleRecord.Outcome == RuleOutcome.Fail || ruleRecord.Outcome == RuleOutcome.Error)
+                            ruleBlockTarget.Fail();
+
+                        AddToSummary(ruleBlock: ruleBlockTarget.Value, outcome: ruleRecord.Outcome);
+                        if (ShouldOutput(ruleRecord.Outcome))
+                            result.Add(ruleRecord);
+                    }
+                    finally
+                    {
+                        // Exit rule block scope
+                        Context.ExitRuleBlock();
+                    }
                 }
-                finally
-                {
-                    // Exit rule block scope
-                    Context.ExitRuleBlock();
-                }
+
+                if (ruleCounter == 0)
+                    Context.WarnObjectNotProcessed();
+
+                return result;
             }
-
-            if (ruleCounter == 0)
-                Context.WarnObjectNotProcessed();
-
-            return result;
+            finally
+            {
+                Context.ExitTargetObject();
+            }
         }
 
         private bool ShouldOutput(RuleOutcome outcome)
