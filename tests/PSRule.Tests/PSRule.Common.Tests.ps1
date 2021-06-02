@@ -6,9 +6,7 @@
 #
 
 [CmdletBinding()]
-param (
-
-)
+param ()
 
 # Setup error handling
 $ErrorActionPreference = 'Stop';
@@ -38,6 +36,15 @@ Describe 'Invoke-PSRule' -Tag 'Invoke-PSRule','Common' {
         $testObject = [PSCustomObject]@{
             Name = 'TestObject1'
             Value = 1
+            '_PSRule' = [PSCustomObject]@{
+                source = @(
+                    [PSCustomObject]@{
+                        file = 'source.json'
+                        Line = 100
+                        Position = 1000
+                    }
+                )
+            }
         }
         $testObject.PSObject.TypeNames.Insert(0, 'TestType');
 
@@ -50,6 +57,10 @@ Describe 'Invoke-PSRule' -Tag 'Invoke-PSRule','Common' {
                 $result.TargetName | Should -Be 'TestObject1';
                 $result.Info.Annotations.culture | Should -Be 'en-ZZ';
                 $result.Recommendation | Should -Be 'This is a recommendation.';
+                $result.Source | Should -Not -BeNullOrEmpty;
+                $result.Source[0].File | Should -Be 'source.json';
+                $result.Source[0].Line | Should -Be 100;
+                $result.Source[0].Position | Should -Be 1000;
                 Assert-VerifiableMock;
             }
             finally {
@@ -607,6 +618,10 @@ Describe 'Invoke-PSRule' -Tag 'Invoke-PSRule','Common' {
             $result.Length | Should -Be 2;
             $result | Should -BeOfType PSRule.Rules.RuleRecord;
             $result.TargetName | Should -BeIn 'TestObject1', 'TestObject2';
+            $result[0].Source[0].File | Should -Be 'some-file.json';
+            $result[0].Source[0].Line | Should -Be 1;
+            $result[1].Source[0].File.Split([char[]]@('\', '/'))[-1] | Should -Be 'ObjectFromFile.json';
+            $result[1].Source[0].Line | Should -Be 43;
 
             # Multiple file
             $result = @(Invoke-PSRule -Path $ruleFilePath -Name 'WithFormat' -InputPath $inputFiles);

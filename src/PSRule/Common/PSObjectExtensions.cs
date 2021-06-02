@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using Newtonsoft.Json;
+using PSRule.Data;
 using PSRule.Runtime;
 using System;
 using System.Collections;
@@ -13,6 +14,8 @@ namespace PSRule
 {
     internal static class PSObjectExtensions
     {
+        private const string PROPERTY_SOURCE = "source";
+
         public static T PropertyValue<T>(this PSObject o, string propertyName)
         {
             if (o.BaseObject is Hashtable hashtable)
@@ -52,6 +55,18 @@ namespace PSRule
             return false;
         }
 
+        public static bool TryProperty<T>(this PSObject o, string name, out T value)
+        {
+            value = default;
+            var pValue = ConvertValue<T>(o.Properties[name]?.Value);
+            if (pValue is T tValue)
+            {
+                value = tValue;
+                return true;
+            }
+            return false;
+        }
+
         public static string ToJson(this PSObject o)
         {
             var settings = new JsonSerializerSettings { Formatting = Formatting.None, TypeNameHandling = TypeNameHandling.None, MaxDepth = 1024, Culture = CultureInfo.InvariantCulture };
@@ -61,7 +76,7 @@ namespace PSRule
 
         public static bool TryTargetInfo(this PSObject o, out PSRuleTargetInfo targetInfo)
         {
-            return TryProperty(o, PSRuleTargetInfo.PropertyName, out targetInfo);
+            return TryMember(o, PSRuleTargetInfo.PropertyName, out targetInfo);
         }
 
         public static void UseTargetInfo(this PSObject o, out PSRuleTargetInfo targetInfo)
@@ -70,7 +85,42 @@ namespace PSRule
                 return;
 
             targetInfo = new PSRuleTargetInfo();
-            o.Properties.Add(new PSNoteProperty(PSRuleTargetInfo.PropertyName, targetInfo));
+            o.Members.Add(targetInfo);
+        }
+
+        public static void SetTargetInfo(this PSObject o, PSRuleTargetInfo targetInfo)
+        {
+            if (TryTargetInfo(o, out PSRuleTargetInfo orginalInfo))
+            {
+                targetInfo.Combine(orginalInfo);
+                o.Members[PSRuleTargetInfo.PropertyName].Value = targetInfo;
+                return;
+            }
+            o.Members.Add(targetInfo);
+        }
+
+        public static TargetSourceInfo[] GetSourceInfo(this PSObject o)
+        {
+            if (!TryTargetInfo(o, out PSRuleTargetInfo targetInfo))
+                return Array.Empty<TargetSourceInfo>();
+
+            return targetInfo.Source.ToArray();
+        }
+
+        public static void ConvertTargetInfoProperty(this PSObject o)
+        {
+            if (o == null || !TryProperty(o, PSRuleTargetInfo.PropertyName, out PSObject value))
+                return;
+
+            UseTargetInfo(o, out PSRuleTargetInfo targetInfo);
+            if (TryProperty(value, PROPERTY_SOURCE, out Array sources))
+            {
+                for (var i = 0; i < sources.Length; i++)
+                {
+                    var source = TargetSourceInfo.Create(sources.GetValue(i));
+                    targetInfo.WithSource(source);
+                }
+            }
         }
 
         private static T ConvertValue<T>(object value)
@@ -81,10 +131,10 @@ namespace PSRule
             return typeof(T).IsValueType ? (T)Convert.ChangeType(value, typeof(T), Thread.CurrentThread.CurrentCulture) : (T)value;
         }
 
-        private static bool TryProperty<T>(PSObject o, string name, out T value)
+        private static bool TryMember<T>(PSObject o, string name, out T value)
         {
             value = default;
-            if (o.Properties[name] is T tValue)
+            if (o.Members[name]?.Value is T tValue)
             {
                 value = tValue;
                 return true;

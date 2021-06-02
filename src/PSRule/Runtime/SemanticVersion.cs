@@ -2,6 +2,7 @@
 // Licensed under the MIT License.
 
 using System;
+using System.Collections.Generic;
 using System.Diagnostics;
 using System.Threading;
 
@@ -23,9 +24,15 @@ namespace PSRule.Runtime
         private const char DASH = '-';
         private const char PLUS = '+';
         private const char ZERO = '0';
+        private const char PIPE = '|';
+        private const char SPACE = ' ';
+        private const char AT = '@';
+
+        private const string FLAG_PRERELEASE = "@prerelease ";
+        private const string FLAG_PRE = "@pre ";
 
         [Flags]
-        internal enum CompareFlag
+        internal enum ComparisonOperatorFlags
         {
             None = 0,
 
@@ -49,43 +56,132 @@ namespace PSRule.Runtime
             LessThan = 16
         }
 
-        [DebuggerDisplay("{_Major}.{_Minor}.{_Patch}")]
-        internal sealed class Constraint
+        internal enum JoinOperator
         {
-            private readonly CompareFlag _Flag;
+            None = 0,
+            And = 1,
+            Or = 2
+        }
+
+        [Flags]
+        internal enum ConstraintFlags
+        {
+            None = 0,
+
+            Prerelease = 1
+        }
+
+        internal interface IConstraint
+        {
+            bool Equals(Version version);
+        }
+
+        internal sealed class VersionConstraint : IConstraint
+        {
+            private List<ConstraintExpression> _Constraints;
+
+            public bool Equals(Version version)
+            {
+                if (_Constraints == null || _Constraints.Count == 0)
+                    return true;
+
+                var match = false;
+                var i = 0;
+                while (!match && i < _Constraints.Count)
+                {
+                    var result = _Constraints[i].Equals(version);
+
+                    // True OR
+                    if (_Constraints[i].Join == JoinOperator.Or && result)
+                        return true;
+
+                    // True AND
+                    if (_Constraints[i].Join == JoinOperator.And && result && ++i < _Constraints.Count)
+                        continue;
+
+                    // False OR
+                    if (_Constraints[i].Join == JoinOperator.Or && ++i < _Constraints.Count)
+                        continue;
+
+                    // False AND
+                    while (++i < _Constraints.Count)
+                    {
+                        // Move to after the next OR.
+                        if (_Constraints[i].Join == JoinOperator.Or)
+                        {
+                            i++;
+                            continue;
+                        }
+                    }
+                }
+                return false;
+            }
+
+            internal void Join(int major, int minor, int patch, PR prid, ComparisonOperatorFlags flag, JoinOperator join, bool includePrerelease)
+            {
+                if (_Constraints == null)
+                    _Constraints = new List<ConstraintExpression>();
+
+                _Constraints.Add(new ConstraintExpression(
+                    major,
+                    minor,
+                    patch,
+                    prid,
+                    flag,
+                    join == JoinOperator.None ? JoinOperator.Or : join,
+                    includePrerelease
+                ));
+            }
+        }
+
+        [DebuggerDisplay("{_Major}.{_Minor}.{_Patch}")]
+        internal sealed class ConstraintExpression : IConstraint
+        {
+            private readonly ComparisonOperatorFlags _Flag;
             private readonly int _Major;
             private readonly int _Minor;
             private readonly int _Patch;
-            private readonly string _Prerelease;
+            private readonly PR _PRID;
+            private readonly bool _IncludePrerelease;
 
-            internal Constraint(int major, int minor, int patch, string prerelease, CompareFlag flag)
+            internal ConstraintExpression(int major, int minor, int patch, PR prid, ComparisonOperatorFlags flag, JoinOperator join, bool includePrerelease)
             {
-                _Flag = flag == CompareFlag.None ? CompareFlag.Equals : flag;
+                _Flag = flag == ComparisonOperatorFlags.None ? ComparisonOperatorFlags.Equals : flag;
                 _Major = major;
                 _Minor = minor;
                 _Patch = patch;
-                _Prerelease = prerelease;
+                _PRID = prid;
+                Join = join;
+                _IncludePrerelease = includePrerelease;
             }
 
-            public static bool TryParse(string value, out Constraint constraint)
+            public bool Stable => IsStable(_PRID);
+
+            public JoinOperator Join { get; }
+
+            public static bool TryParse(string value, out IConstraint constraint)
             {
                 return TryParseConstraint(value, out constraint);
             }
 
             public bool Equals(System.Version version)
             {
-                return Equals(version.Major, version.Minor, version.Build, string.Empty);
+                return Equals(version.Major, version.Minor, version.Build, null);
             }
 
             public bool Equals(Version version)
             {
-                return Equals(version.Major, version.Minor, version.Patch, version.PreRelease);
+                return Equals(version.Major, version.Minor, version.Patch, version.Prerelease);
             }
 
-            public bool Equals(int major, int minor, int patch, string prerelease)
+            public bool Equals(int major, int minor, int patch, PR prid)
             {
-                if (_Flag == CompareFlag.Equals)
-                    return EQ(major, minor, patch, prerelease);
+                if (_Flag == ComparisonOperatorFlags.Equals)
+                    return EQ(major, minor, patch, prid);
+
+                // Fail when pre-release should not be included
+                if (GuardPRID(prid))
+                    return false;
 
                 // Fail when major is less
                 if (GuardMajor(major))
@@ -100,111 +196,126 @@ namespace PSRule.Runtime
                     return false;
 
                 // Fail when not greater
-                if (GuardGreater(major, minor, patch, prerelease))
+                if (GuardGreater(major, minor, patch, prid))
                     return false;
 
                 // Fail when not greater or equal to
-                if (GuardGreaterOrEqual(major, minor, patch, prerelease))
+                if (GuardGreaterOrEqual(major, minor, patch, prid))
                     return false;
 
                 // Fail when not less
-                if (GaurdLess(major, minor, patch, prerelease))
+                if (GaurdLess(major, minor, patch, prid))
                     return false;
 
                 // Fail with not less or equal to
-                if (GuardLessOrEqual(major, minor, patch, prerelease))
+                if (GuardLessOrEqual(major, minor, patch, prid))
                     return false;
 
                 return true;
             }
 
-            private bool GuardLessOrEqual(int major, int minor, int patch, string prerelease)
+            private bool GuardLessOrEqual(int major, int minor, int patch, PR prid)
             {
-                return _Flag == (CompareFlag.LessThan | CompareFlag.Equals) && !(LT(major, minor, patch, prerelease) || EQ(major, minor, patch, prerelease));
+                return _Flag == (ComparisonOperatorFlags.LessThan | ComparisonOperatorFlags.Equals) && !(LT(major, minor, patch, prid) || EQ(major, minor, patch, prid));
             }
 
-            private bool GaurdLess(int major, int minor, int patch, string prerelease)
+            private bool GaurdLess(int major, int minor, int patch, PR prid)
             {
-                return _Flag == CompareFlag.LessThan && !LT(major, minor, patch, prerelease);
+                return _Flag == ComparisonOperatorFlags.LessThan && !LT(major, minor, patch, prid);
             }
 
-            private bool GuardGreaterOrEqual(int major, int minor, int patch, string prerelease)
+            private bool GuardGreaterOrEqual(int major, int minor, int patch, PR prid)
             {
-                return _Flag == (CompareFlag.GreaterThan | CompareFlag.Equals) && !(GT(major, minor, patch, prerelease) || EQ(major, minor, patch, prerelease));
+                return _Flag == (ComparisonOperatorFlags.GreaterThan | ComparisonOperatorFlags.Equals) && !(GT(major, minor, patch, prid) || EQ(major, minor, patch, prid));
             }
 
-            private bool GuardGreater(int major, int minor, int patch, string prerelease)
+            private bool GuardGreater(int major, int minor, int patch, PR prid)
             {
-                return _Flag == CompareFlag.GreaterThan && !GT(major, minor, patch, prerelease);
+                return _Flag == ComparisonOperatorFlags.GreaterThan && !GT(major, minor, patch, prid);
             }
 
             private bool GuardMinor(int minor, int patch)
             {
-                return _Flag == CompareFlag.MinorUplift && (minor < _Minor || (minor == _Minor && patch < _Patch));
+                return _Flag == ComparisonOperatorFlags.MinorUplift && (minor < _Minor || (minor == _Minor && patch < _Patch));
             }
 
             private bool GuardPatch(int minor, int patch)
             {
-                return _Flag == CompareFlag.PatchUplift && (minor != _Minor || patch < _Patch);
+                return _Flag == ComparisonOperatorFlags.PatchUplift && (minor != _Minor || patch < _Patch);
             }
 
             private bool GuardMajor(int major)
             {
-                return (_Flag == CompareFlag.MinorUplift || _Flag == CompareFlag.PatchUplift) && major != _Major;
+                return (_Flag == ComparisonOperatorFlags.MinorUplift || _Flag == ComparisonOperatorFlags.PatchUplift) && major != _Major;
             }
 
-            private bool EQ(int major, int minor, int patch, string prerelease)
+            private bool GuardPRID(PR prid)
             {
-                return EQCore(major, minor, patch) && PR(prerelease) == 0;
+                if (_IncludePrerelease)
+                    return false;
+
+                return Stable && !IsStable(prid);
+            }
+
+            private bool EQ(int major, int minor, int patch, PR prid)
+            {
+                return EQCore(major, minor, patch) && PR(prid) == 0;
             }
 
             private bool EQCore(int major, int minor, int patch)
             {
-                return (_Major == -1 || _Major == major) && (_Minor == -1 || _Minor == minor) && (_Patch == -1 || _Patch == patch);
+                return (_Major == -1 || _Major == major) &&
+                    (_Minor == -1 || _Minor == minor) &&
+                    (_Patch == -1 || _Patch == patch);
             }
 
-            private bool GT(int major, int minor, int patch, string prerelease)
+            private bool GTCore(int major, int minor, int patch)
             {
-                if (!string.IsNullOrEmpty(prerelease))
-                    return EQCore(major, minor, patch) && PR(prerelease) > 0;
-
                 return (major > _Major) ||
                     (major == _Major && minor > _Minor) ||
-                    (major == _Major && minor == _Minor && patch > _Patch) ||
-                    (major == _Major && minor == _Minor && patch == _Patch && PR(prerelease) > 0);
+                    (major == _Major && minor == _Minor && patch > _Patch);
             }
 
-            private bool LT(int major, int minor, int patch, string prerelease)
+            private bool LTCore(int major, int minor, int patch)
             {
-                if (!string.IsNullOrEmpty(prerelease))
-                    return EQCore(major, minor, patch) && PR(prerelease) < 0;
-
-                return major < _Major ||
+                return (major < _Major) ||
                     (major == _Major && minor < _Minor) ||
-                    (major == _Major && minor == _Minor && patch < _Patch) ||
-                    (major == _Major && minor == _Minor && patch == _Patch && PR(prerelease) < 0);
+                    (major == _Major && minor == _Minor && patch < _Patch);
+            }
+
+            /// <summary>
+            /// Greater Than.
+            /// </summary>
+            private bool GT(int major, int minor, int patch, PR prid)
+            {
+                if (!IsStable(prid) && !_IncludePrerelease)
+                    return EQCore(major, minor, patch) && PR(prid) < 0;
+
+                return GTCore(major, minor, patch) || (EQCore(major, minor, patch) && PR(prid) < 0);
+            }
+
+            /// <summary>
+            /// Less Than.
+            /// </summary>
+            private bool LT(int major, int minor, int patch, PR prid)
+            {
+                if (!IsStable(prid) && !_IncludePrerelease)
+                    return EQCore(major, minor, patch) && PR(prid) > 0;
+
+                return LTCore(major, minor, patch) || (EQCore(major, minor, patch) && PR(prid) > 0);
             }
 
             /// <summary>
             /// Compare pre-release.
             /// </summary>
-            private int PR(string prerelease)
+            private int PR(PR prid)
             {
-                if (string.IsNullOrEmpty(prerelease))
-                    return string.IsNullOrEmpty(_Prerelease) ? 0 : 1;
-                else if (string.IsNullOrEmpty(_Prerelease))
-                    return -1;
+                return _PRID.CompareTo(prid);
+            }
 
-                if (prerelease.Length == _Prerelease.Length)
-                    return string.Compare(prerelease, _Prerelease, StringComparison.Ordinal);
-
-                var compareLength = prerelease.Length > _Prerelease.Length ? _Prerelease.Length : prerelease.Length;
-                var left = prerelease.Substring(0, compareLength);
-                var right = _Prerelease.Substring(0, compareLength);
-                if (left == right)
-                    return prerelease.Length == compareLength ? -1 : 1;
-
-                return string.Compare(left, right, StringComparison.Ordinal);
+            private static bool IsStable(PR prid)
+            {
+                return prid == null || prid.Stable;
             }
         }
 
@@ -213,15 +324,15 @@ namespace PSRule.Runtime
             public readonly int Major;
             public readonly int Minor;
             public readonly int Patch;
-            public readonly string PreRelease;
+            public readonly PR Prerelease;
             public readonly string Build;
 
-            internal Version(int major, int minor, int patch, string prerelease, string build)
+            internal Version(int major, int minor, int patch, PR prerelease, string build)
             {
                 Major = major;
                 Minor = minor;
                 Patch = patch;
-                PreRelease = prerelease;
+                Prerelease = prerelease;
                 Build = build;
             }
 
@@ -266,6 +377,80 @@ namespace PSRule.Runtime
             }
         }
 
+        [DebuggerDisplay("{Value}")]
+        internal sealed class PR
+        {
+            public static readonly PR Empty = new PR();
+
+            private static readonly char[] SEPARATOR = new char[] { '.' };
+
+            private readonly string[] _Identifiers;
+
+            private PR()
+            {
+                Value = string.Empty;
+                _Identifiers = null;
+            }
+
+            internal PR(string value)
+            {
+                Value = string.IsNullOrEmpty(value) ? string.Empty : value;
+                _Identifiers = string.IsNullOrEmpty(value) ? null : value.Split(SEPARATOR, StringSplitOptions.RemoveEmptyEntries);
+            }
+
+            public string Value { get; }
+
+            public bool Stable => _Identifiers == null;
+
+            public int CompareTo(PR pr)
+            {
+                if (pr == null || pr.Stable)
+                    return Stable ? 0 : -1;
+                else if (Stable)
+                    return 1;
+
+                var i = -1;
+                var left = _Identifiers;
+                var right = pr._Identifiers;
+
+                while (++i < left.Length && i < right.Length)
+                {
+                    var leftNumeric = false;
+                    var rightNumeric = false;
+                    if (long.TryParse(left[i], out long l))
+                        leftNumeric = true;
+
+                    if (long.TryParse(right[i], out long r))
+                        rightNumeric = true;
+
+                    if (leftNumeric != rightNumeric)
+                        return leftNumeric ? -1 : 1;
+
+                    if (leftNumeric && rightNumeric && l == r)
+                        continue;
+
+                    if (leftNumeric && rightNumeric)
+                        return l.CompareTo(r);
+
+                    var result = string.Compare(left[i], right[i], StringComparison.Ordinal);
+                    if (result == 0)
+                        continue;
+
+                    return result;
+                }
+                if (left.Length == right.Length)
+                    return 0;
+
+                return left.Length > right.Length ? 1 : -1;
+            }
+
+            public override string ToString()
+            {
+                return Value.ToString();
+            }
+        }
+
+        [DebuggerDisplay("Current = {_Current}, Position = {_Position}, Value = {_Value}")]
         private sealed class VersionStream
         {
             private readonly string _Value;
@@ -283,30 +468,55 @@ namespace PSRule.Runtime
 
             internal void Next()
             {
-                if (EOF || ++_Position >= _Value.Length)
+                Next(1);
+            }
+
+            private void Next(int count)
+            {
+                _Position += count;
+                if (EOF || _Position >= _Value.Length)
                     return;
 
                 _Current = _Value[_Position];
             }
 
-            internal void GetConstraint(out CompareFlag flag)
+            internal void Operator(out ComparisonOperatorFlags comparison)
             {
-                flag = CompareFlag.None;
+                comparison = ComparisonOperatorFlags.None;
                 while (!EOF && IsConstraint(_Current))
                 {
                     if (_Current == MINOR)
-                        flag = CompareFlag.MinorUplift;
+                        comparison = ComparisonOperatorFlags.MinorUplift;
                     else if (_Current == PATCH)
-                        flag = CompareFlag.PatchUplift;
+                        comparison = ComparisonOperatorFlags.PatchUplift;
                     else if (_Current == EQUAL)
-                        flag |= CompareFlag.Equals;
+                        comparison |= ComparisonOperatorFlags.Equals;
                     else if (_Current == GREATER)
-                        flag |= CompareFlag.GreaterThan;
+                        comparison |= ComparisonOperatorFlags.GreaterThan;
                     else if (_Current == LESS)
-                        flag |= CompareFlag.LessThan;
+                        comparison |= ComparisonOperatorFlags.LessThan;
 
                     Next();
                 }
+            }
+
+            internal void Flags(out ConstraintFlags flag)
+            {
+                flag = ConstraintFlags.None;
+                if (EOF || _Current != AT)
+                    return;
+
+                if (HasFlag(FLAG_PRE) || HasFlag(FLAG_PRERELEASE))
+                    flag |= ConstraintFlags.Prerelease;
+            }
+
+            private bool HasFlag(string value)
+            {
+                if (string.Compare(_Value, _Position, value, 0, value.Length, false) != 0)
+                    return false;
+
+                Next(value.Length);
+                return true;
             }
 
             private void SkipLeading()
@@ -350,46 +560,77 @@ namespace PSRule.Runtime
                         Next();
                     }
 
-                    if (_Current == DASH || _Current == PLUS)
+                    if (IsIdentifier(_Current))
+                        return true;
+
+                    if (IsJoin(_Current))
                         return true;
                 }
                 return segmentIndex > 0;
             }
 
-            internal bool TryPrerelease(out string label)
+            internal bool Prerelease(out PR identifier)
             {
-                label = string.Empty;
+                identifier = PR.Empty;
                 if (EOF || _Current != DASH)
                     return true;
 
                 Next();
                 var start = _Position;
-                if (_Current == ZERO)
+                if (EOF)
                     return false;
 
-                while (!EOF && IsPrereleaseChar(_Current))
+                bool numeric = true;
+                while (!EOF && IsPrereleaseChar(_Current, ref numeric))
                     Next();
 
-                label = _Value.Substring(start, _Position - start);
-                return label.Length > 0;
+                if (_Position - start == 0)
+                    return false;
+
+                // No leading 0 if numeric
+                var id = _Value.Substring(start, _Position - start);
+                if (numeric && id.Length > 1 && id[0] == ZERO)
+                    return false;
+
+                identifier = new PR(id);
+                return true;
             }
 
-            internal bool TryBuild(out string label)
+            internal void Build(out string label)
             {
                 label = string.Empty;
                 if (EOF || _Current != PLUS)
-                    return true;
+                    return;
 
                 Next();
                 var start = _Position;
                 if (_Current == ZERO)
-                    return false;
+                    return;
 
                 while (!EOF && IsBuildChar(_Current))
                     Next();
 
                 label = _Value.Substring(start, _Position - start);
-                return label.Length > 0;
+            }
+
+            /// <summary>
+            /// 1.2.3 || 3.4.5
+            /// >=1.2.3 <3.4.5
+            /// </summary>
+            internal JoinOperator GetJoin()
+            {
+                var result = JoinOperator.None;
+                while ((_Current == SPACE || _Current == PIPE) && !EOF)
+                {
+                    if (result == JoinOperator.None && _Current == SPACE)
+                        result = JoinOperator.And;
+
+                    if (_Current == PIPE)
+                        result = JoinOperator.Or;
+
+                    Next();
+                }
+                return _Current != SPACE || _Current != PIPE ? result : JoinOperator.Or;
             }
 
             [DebuggerStepThrough()]
@@ -419,12 +660,16 @@ namespace PSRule.Runtime
             [DebuggerStepThrough()]
             private static bool IsAllowedChar(char c)
             {
-                return IsVersionDigit(c) || IsSeparator(c) || IsWildcard(c) || c == DASH || c == PLUS;
+                return IsVersionDigit(c) || IsSeparator(c) || IsWildcard(c) || IsIdentifier(c);
             }
 
             [DebuggerStepThrough()]
-            private static bool IsPrereleaseChar(char c)
+            private static bool IsPrereleaseChar(char c, ref bool numeric)
             {
+                if (numeric && char.IsDigit(c))
+                    return true;
+
+                numeric = false;
                 return char.IsDigit(c) || IsLetter(c) || c == DASH || c == SEPARATOR;
             }
 
@@ -432,6 +677,18 @@ namespace PSRule.Runtime
             private static bool IsBuildChar(char c)
             {
                 return char.IsDigit(c) || IsLetter(c);
+            }
+
+            [DebuggerStepThrough()]
+            private static bool IsIdentifier(char c)
+            {
+                return c == DASH || c == PLUS;
+            }
+
+            [DebuggerStepThrough()]
+            private static bool IsJoin(char c)
+            {
+                return c == SPACE || c == PIPE;
             }
 
             /// <summary>
@@ -445,23 +702,28 @@ namespace PSRule.Runtime
             }
         }
 
-        public static bool TryParseConstraint(string value, out Constraint constraint)
+        public static bool TryParseConstraint(string value, out IConstraint constraint, bool includePrerelease = false)
         {
-            constraint = null;
+            var c = new VersionConstraint();
+            constraint = c;
             if (string.IsNullOrEmpty(value))
                 return true;
 
             var stream = new VersionStream(value);
+            stream.Flags(out ConstraintFlags flags);
+            if (flags.HasFlag(ConstraintFlags.Prerelease))
+                includePrerelease = true;
+
             while (!stream.EOF)
             {
-                stream.GetConstraint(out CompareFlag flag);
+                stream.Operator(out ComparisonOperatorFlags comparison);
                 if (!stream.TrySegments(out int[] segments))
                     return false;
 
-                if (!stream.TryPrerelease(out string prerelease) || !stream.TryBuild(out _) || !stream.EOF)
-                    return false;
+                stream.Prerelease(out PR prerelease);
+                stream.Build(out _);
 
-                constraint = new Constraint(segments[0], segments[1], segments[2], prerelease, flag);
+                c.Join(segments[0], segments[1], segments[2], prerelease, comparison, stream.GetJoin(), includePrerelease);
             }
             return true;
         }
@@ -476,8 +738,10 @@ namespace PSRule.Runtime
             if (!stream.TrySegments(out int[] segments))
                 return false;
 
-            stream.TryPrerelease(out string prerelease);
-            stream.TryBuild(out string build);
+            if (!stream.Prerelease(out PR prerelease))
+                return false;
+
+            stream.Build(out string build);
             version = new Version(segments[0], segments[1], segments[2], prerelease, build);
             return true;
         }

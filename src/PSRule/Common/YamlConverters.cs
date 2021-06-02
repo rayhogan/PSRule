@@ -164,19 +164,7 @@ namespace PSRule
                 }
                 parser.Require<MappingEnd>();
                 parser.MoveNext();
-                //values.Add(result);
             }
-            //else if (parser.TryConsume<SequenceStart>(out _))
-            //{
-            //    while (!(parser.Current is SequenceEnd))
-            //    {
-            //        if (ReadYaml(parser, typeof(PSObject)) is PSObject o)
-            //            values.Add(o);
-            //    }
-            //    parser.Require<SequenceEnd>();
-            //    parser.MoveNext();
-            //}
-
             return result;
         }
 
@@ -671,9 +659,13 @@ namespace PSRule
         {
             if (expectedType == typeof(PSObject[]) && reader.Current is MappingStart)
             {
+                int lineNumber = reader.Current.Start.Line;
+                int linePosition = reader.Current.Start.Column;
                 value = _Converter.ReadYaml(reader, typeof(PSObject));
                 if (value is PSObject pso)
                 {
+                    pso.UseTargetInfo(out PSRuleTargetInfo info);
+                    info.SetSource(lineNumber, linePosition);
                     value = new PSObject[] { pso };
                     return true;
                 }

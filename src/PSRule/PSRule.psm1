@@ -476,8 +476,8 @@ function Assert-PSRule {
         [String[]]$Convention,
 
         [Parameter(Mandatory = $False)]
-        [ValidateSet('Client', 'Plain', 'AzurePipelines', 'GitHubActions')]
-        [PSRule.Configuration.OutputStyle]$Style = [PSRule.Configuration.OutputStyle]::Client,
+        [ValidateSet('Client', 'Plain', 'AzurePipelines', 'GitHubActions', 'VisualStudioCode', 'Detect')]
+        [PSRule.Configuration.OutputStyle]$Style = [PSRule.Configuration.OutputStyle]::Detect,
 
         [Parameter(Mandatory = $False)]
         [PSRule.Rules.RuleOutcome]$Outcome = [PSRule.Rules.RuleOutcome]::Processed,
@@ -1108,6 +1108,11 @@ function New-PSRuleOption {
         [ValidateSet('Detail', 'Summary')]
         [PSRule.Configuration.ResultFormat]$OutputAs = 'Detail',
 
+        # Sets the Output.Banner option
+        [Parameter(Mandatory = $False)]
+        [ValidateSet('Default', 'Minimal', 'None', 'Title', 'Source', 'SupportLinks')]
+        [PSRule.Configuration.BannerFormat]$OutputBanner = 'Default',
+
         # Sets the Output.Culture option
         [Parameter(Mandatory = $False)]
         [String[]]$OutputCulture,
@@ -1134,8 +1139,8 @@ function New-PSRuleOption {
 
         # Sets the Output.Style option
         [Parameter(Mandatory = $False)]
-        [ValidateSet('Client', 'Plain', 'AzurePipelines', 'GitHubActions')]
-        [PSRule.Configuration.OutputStyle]$OutputStyle = [PSRule.Configuration.OutputStyle]::Client
+        [ValidateSet('Client', 'Plain', 'AzurePipelines', 'GitHubActions', 'VisualStudioCode', 'Detect')]
+        [PSRule.Configuration.OutputStyle]$OutputStyle = [PSRule.Configuration.OutputStyle]::Detect
     )
 
     begin {
@@ -1323,6 +1328,11 @@ function Set-PSRuleOption {
         [ValidateSet('Detail', 'Summary')]
         [PSRule.Configuration.ResultFormat]$OutputAs = 'Detail',
 
+        # Sets the Output.Banner option
+        [Parameter(Mandatory = $False)]
+        [ValidateSet('Default', 'Minimal', 'None', 'Title', 'Source', 'SupportLinks')]
+        [PSRule.Configuration.BannerFormat]$OutputBanner = 'Default',
+
         # Sets the Output.Culture option
         [Parameter(Mandatory = $False)]
         [String[]]$OutputCulture,
@@ -1349,8 +1359,8 @@ function Set-PSRuleOption {
 
         # Sets the Output.Style option
         [Parameter(Mandatory = $False)]
-        [ValidateSet('Client', 'Plain', 'AzurePipelines', 'GitHubActions')]
-        [PSRule.Configuration.OutputStyle]$OutputStyle = [PSRule.Configuration.OutputStyle]::Client
+        [ValidateSet('Client', 'Plain', 'AzurePipelines', 'GitHubActions', 'VisualStudioCode', 'Detect')]
+        [PSRule.Configuration.OutputStyle]$OutputStyle = [PSRule.Configuration.OutputStyle]::Detect
     )
     begin {
         Write-Verbose -Message "[Set-PSRuleOption] BEGIN::";
@@ -1948,6 +1958,11 @@ function SetOptions {
         [ValidateSet('Detail', 'Summary')]
         [PSRule.Configuration.ResultFormat]$OutputAs = 'Detail',
 
+        # Sets the Output.Banner option
+        [Parameter(Mandatory = $False)]
+        [ValidateSet('Default', 'Minimal', 'None', 'Title', 'Source', 'SupportLinks')]
+        [PSRule.Configuration.BannerFormat]$OutputBanner = 'Default',
+
         # Sets the Output.Culture option
         [Parameter(Mandatory = $False)]
         [String[]]$OutputCulture,
@@ -1974,8 +1989,8 @@ function SetOptions {
 
         # Sets the Output.Style option
         [Parameter(Mandatory = $False)]
-        [ValidateSet('Client', 'Plain', 'AzurePipelines', 'GitHubActions')]
-        [PSRule.Configuration.OutputStyle]$OutputStyle = [PSRule.Configuration.OutputStyle]::Client
+        [ValidateSet('Client', 'Plain', 'AzurePipelines', 'GitHubActions', 'VisualStudioCode', 'Detect')]
+        [PSRule.Configuration.OutputStyle]$OutputStyle = [PSRule.Configuration.OutputStyle]::Detect
     )
     process {
         # Options
@@ -2078,6 +2093,11 @@ function SetOptions {
         # Sets option Output.As
         if ($PSBoundParameters.ContainsKey('OutputAs')) {
             $Option.Output.As = $OutputAs;
+        }
+
+        # Sets option Output.As
+        if ($PSBoundParameters.ContainsKey('OutputBanner')) {
+            $Option.Output.Banner = $OutputBanner;
         }
 
         # Sets option Output.Culture

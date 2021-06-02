@@ -1175,8 +1175,11 @@ A constraint can optionally be provided to require the semantic version to be wi
 The following parameters are accepted:
 
 - `inputObject` - The object being checked for the specified field.
-- `field` - The name of the field to check. This is a case insensitive compare.
+- `field` - The name of the field to check.
+This is a case insensitive compare.
 - `constraint` (optional) - A version constraint, see below for details of version constrain format.
+- `includePrerelease` (optional) - Determines if prerelease versions are included.
+Unless specified this defaults to `$False`.
 
 The following are supported constraints:
 
@@ -1191,11 +1194,57 @@ The following are supported constraints:
 - `<=version` - Must be less than or equal to version.
   - e.g. `<=1.2.3`
 - `^version` - Compatible with version.
-  - e.g. `^1.2.3` - >=1.2.3, <2.0.0
+  - e.g. `^1.2.3` - `>=1.2.3`, `<2.0.0`
 - `~version` - Approximately equivalent to version
-  - e.g. `~1.2.3` - >=1.2.3, <1.3.0
+  - e.g. `~1.2.3` - `>=1.2.3`, `<1.3.0`
 
-An empty, null or `*` version constraint matches all valid semantic versions.
+An empty, null or `*` constraint matches all valid semantic versions.
+
+Multiple constraints can be joined together:
+
+- Use a _space_ to separate multiple constraints, each must be true (_logical AND_).
+- Separates constraint sets with the double pipe `||`.
+Only one constraint set must be true (_logical OR_).
+
+By example:
+
+- `1.2.3 || >=3.4.5 <5.0.0` results in:
+  - Pass: `1.2.3`, `3.4.5`, `3.5.0`, `4.9.9`.
+  - Fail: `3.0.0`, `5.0.0`.
+
+Handling for prerelease versions:
+
+- Constraints and versions containing prerelease identifiers are supported.
+i.e. `>=1.2.3-build.1` or `1.2.3-build.1`.
+- A version containing a prerelease identifer follows semantic versioning rules.
+i.e. `1.2.3-alpha` < `1.2.3-alpha.1` < `1.2.3-alpha.beta` < `1.2.3-beta` < `1.2.3-beta.2` < `1.2.3-beta.11` < `1.2.3-rc.1` < `1.2.3`.
+- A constraint without a prerelease identifer will only match a stable version by default.
+Set `includePrerelease` to `$True` to include prerelease versions.
+- Constraints with a prerelease identifer will only match:
+  - Matching prerelease versions of the same major.minor.patch version by default.
+  Set `includePrerelease` to `$True` to include prerelease versions of all matching versions.
+  Alternatively use the `@pre` or `@prerelease` flag in a constraint.
+  - Matching stable versions.
+
+By example:
+
+- `>=1.2.3` results in:
+  - Pass: `1.2.3`, `9.9.9`.
+  - Fail: `1.2.3-build.1`, `9.9.9-build.1`.
+- `>=1.2.3-0` results in:
+  - Pass: `1.2.3`, `1.2.3-build.1`, `9.9.9`.
+  - Fail: `9.9.9-build.1`.
+- `<1.2.3` results in:
+  - Pass: `1.2.2`, `1.0.0`.
+  - Fail: `1.0.0-build.1`, `1.2.3-build.1`.
+- `<1.2.3-0` results in:
+  - Pass: `1.2.2`, `1.0.0`.
+  - Fail: `1.0.0-build.1`, `1.2.3-build.1`.
+- `@pre >=1.2.3` results in:
+  - Pass: `1.2.3`, `9.9.9`, `9.9.9-build.1`
+  - Fail: `1.2.3-build.1`.
+- `@pre >=1.2.3-0` results in:
+  - Pass: `1.2.3`, `1.2.3-build.1`, `9.9.9`, `9.9.9-build.1`.
 
 Reasons include:
 
@@ -1214,6 +1263,14 @@ Rule 'ValidVersion' {
 
 Rule 'MinimumVersion' {
     $Assert.Version($TargetObject, 'version', '>=1.2.3')
+}
+
+Rule 'MinimumVersionWithPrerelease' {
+    $Assert.Version($TargetObject, 'version', '>=1.2.3-0', $True)
+}
+
+Rule 'MinimumVersionWithFlag' {
+    $Assert.Version($TargetObject, 'version', '@pre >=1.2.3-0')
 }
 ```
 

@@ -168,6 +168,7 @@ namespace PSRule.Pipeline
             Option.Input.Format = Option.Input.Format ?? InputOption.Default.Format;
             Option.Output = new OutputOption(option.Output);
             Option.Output.Outcome = Option.Output.Outcome ?? OutputOption.Default.Outcome;
+            Option.Output.Banner = Option.Output.Banner ?? OutputOption.Default.Banner;
             return this;
         }
 
@@ -234,7 +235,7 @@ namespace PSRule.Pipeline
 
         private static bool TryModuleVersion(string moduleVersion, string requiredVersion)
         {
-            if (!(SemanticVersion.TryParseVersion(moduleVersion, out SemanticVersion.Version version) && SemanticVersion.TryParseConstraint(requiredVersion, out SemanticVersion.Constraint constraint)))
+            if (!(SemanticVersion.TryParseVersion(moduleVersion, out SemanticVersion.Version version) && SemanticVersion.TryParseConstraint(requiredVersion, out SemanticVersion.IConstraint constraint)))
                 return false;
 
             return constraint.Equals(version);

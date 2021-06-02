@@ -27,6 +27,7 @@ The following workspace options are available for use:
 - [Logging.RuleFail](#loggingrulefail)
 - [Logging.RulePass](#loggingrulepass)
 - [Output.As](#outputas)
+- [Output.Banner](#outputbanner)
 - [Output.Culture](#outputculture)
 - [Output.Encoding](#outputencoding)
 - [Output.Format](#outputformat)
@@ -573,8 +574,8 @@ Configuration values can be overridden at different scopes.
 This option can be specified using:
 
 ```powershell
-# PowerShell: Using the BaselineConfiguration option with a hashtable
-$option = New-PSRuleOption -BaselineConfiguration @{ LOCAL_APPSERVICEMININSTANCECOUNT = 2 };
+# PowerShell: Using the Configuration option with a hashtable
+$option = New-PSRuleOption -Configuration @{ LOCAL_APPSERVICEMININSTANCECOUNT = 2 };
 ```
 
 ```yaml
@@ -1305,6 +1306,68 @@ variables:
   value: Summary
 ```
 
+### Output.Banner
+
+The information displayed for PSRule banner.
+This option is only applicable when using `Assert-PSRule` cmdlet.
+
+The following information can be shown or hidden by configuring this option.
+
+- `Title` (1) - Shows the PSRule title ASCII text.
+- `Source` (2) - Shows rules module versions used in this run.
+- `SupportLinks` (4) - Shows supporting links for PSRule and rules modules.
+
+Additionally the following rollup options exist:
+
+- `Default` - Shows `Title`, `Source`, and `SupportLinks`.
+This is the default option.
+- `Minimal` - Shows `Source`.
+
+This option can be configured using one of the named values described above.
+Alternatively, this value can be configured by specifying a bit mask as an integer.
+For example `6` would show `Source`, and `SupportLinks`.
+
+This option can be specified using:
+
+```powershell
+# PowerShell: Using the OutputBanner parameter
+$option = New-PSRuleOption -OutputBanner Minimal;
+```
+
+```powershell
+# PowerShell: Using the Output.Banner hashtable key
+$option = New-PSRuleOption -Option @{ 'Output.Banner' = 'Minimal' };
+```
+
+```powershell
+# PowerShell: Using the OutputBanner parameter to set YAML
+Set-PSRuleOption -OutputBanner Minimal;
+```
+
+```yaml
+# YAML: Using the output/banner property
+output:
+  banner: OutputBanner
+```
+
+```bash
+# Bash: Using environment variable
+export PSRULE_OUTPUT_BANNER=Minimal
+```
+
+```yaml
+# GitHub Actions: Using environment variable
+env:
+  PSRULE_OUTPUT_BANNER: Minimal
+```
+
+```yaml
+# Azure Pipelines: Using environment variable
+variables:
+- name: PSRULE_OUTPUT_BANNER
+  value: Minimal
+```
+
 ### Output.Culture
 
 Specified the name of one or more cultures to use for generating output.
@@ -1590,10 +1653,21 @@ If specified, the `-Style` parameter takes precedence, over this option.
 
 The following styles are available:
 
-- Client - Output is written to the host directly in green/ red to indicate outcome. This is the default.
-- Plain - Output is written as an unformatted string. This option can be redirected to a file.
-- AzurePipelines - Output is written with commands that can be interpreted by Azure Pipelines.
-- GitHubActions - Output is written with commands that can be interpreted by GitHub Actions.
+- Client - Output is written to the host directly in green/ red to indicate outcome.
+- Plain - Output is written as an unformatted string.
+This option can be redirected to a file.
+- AzurePipelines - Output is written for integration Azure Pipelines.
+- GitHubActions - Output is written for integration GitHub Actions.
+- VisualStudioCode - Output is written for integration with Visual Studio Code.
+- Detect - Output style will be detected by checking the environment variables.
+This is the default.
+
+Detect uses the following logic:
+
+1. If the `TF_BUILD` environment variable is set to `true`, `AzurePipelines` will be used.
+2. If the `GITHUB_ACTIONS` environment variable is set to `true`, `GitHubActions` will be used.
+3. If the `TERM_PROGRAM` environment variable is set to `vscode`, `VisualStudioCode` will be used.
+4. Use `Client`.
 
 This option can be specified using:
 
@@ -1658,8 +1732,9 @@ $option = New-PSRuleOption -Option @{ 'Requires.PSRule' = '>=1.0.0' };
 ```yaml
 # YAML: Using the requires property
 requires:
-  PSRule: '>=1.0.0'              # Require v1.0.0 or greater.
-  PSRule.Rules.Azure: '>=1.0.0'  # Require v1.0.0 or greater.
+  PSRule: '>=1.0.0'                 # Require v1.0.0 or greater.
+  PSRule.Rules.Azure: '>=1.0.0'     # Require v1.0.0 or greater.
+  PSRule.Rules.CAF: '@pre >=0.1.0'  # Require stable or pre-releases v0.1.0 or greater.
 ```
 
 This option can be configured using environment variables.
@@ -1670,6 +1745,7 @@ When the module name includes a dot (`.`) use an underscore (`_`) instead.
 # Bash: Using environment variable
 export PSRULE_REQUIRES_PSRULE='>=1.0.0'
 export PSRULE_REQUIRES_PSRULE_RULES_AZURE='>=1.0.0'
+export PSRULE_REQUIRES_PSRULE_RULES_CAF='@pre >=0.1.0'
 ```
 
 ```yaml
@@ -1677,6 +1753,7 @@ export PSRULE_REQUIRES_PSRULE_RULES_AZURE='>=1.0.0'
 env:
   PSRULE_REQUIRES_PSRULE: '>=1.0.0'
   PSRULE_REQUIRES_PSRULE_RULES_AZURE: '>=1.0.0'
+  PSRULE_REQUIRES_PSRULE_RULES_CAF: '@pre >=0.1.0'
 ```
 
 ```yaml
@@ -1686,6 +1763,8 @@ variables:
   value: '>=1.0.0'
 - name: PSRULE_REQUIRES_PSRULE_RULES_AZURE
   value: '>=1.0.0'
+- name: PSRULE_REQUIRES_PSRULE_RULES_CAF
+  value: '@pre >=0.1.0'
 ```
 
 ### Rule.Include
@@ -1907,6 +1986,7 @@ logging:
 
 output:
   as: Summary
+  banner: Minimal
   culture:
   - en-US
   encoding: UTF8
@@ -1993,11 +2073,12 @@ logging:
 
 output:
   as: Detail
+  banner: Default
   culture: [ ]
   encoding: Default
   format: None
   outcome: Processed
-  style: Client
+  style: Detect
 
 # Configure rule suppression
 suppression: { }
